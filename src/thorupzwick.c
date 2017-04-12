@@ -1,7 +1,7 @@
 #include "thorupzwick.h"
 #include <time.h>
 
-#define DEBUG
+// #define DEBUG
 
 void print_seqs (struct node **A, int k, int *seqsizes)
 {
@@ -67,8 +67,8 @@ void prepro (struct Graph *graph, int k)
 			double rnd = (double)rand()/RAND_MAX;
 			// Check random number is <= n^{-1/k}
 			if (rnd <= pow (graph->V, -1.0/(double)k)) {
-				#ifdef DEBUG
 				struct node *t = &A[i-1][j];
+				#ifdef DEBUG
 				printf ("added to A_%d from A_%d %d %d\n", i, i-1,
 						t->v_id, t->sp_est);
 				#endif
@@ -83,8 +83,18 @@ void prepro (struct Graph *graph, int k)
 			memcpy (&A[i][l], &tmp_arr[l], sizeof (struct node));
 		}
 	}
-	// TODO: Add vertex s to adjacency list, and connect weight 0 for every w in A_i. Call add node and add edges
+	#ifdef DEBUG
 	print_seqs (A, k, seqsizes);
+	#endif
+	// The added node w will always have the vertex id of the no. of vertices
+	for (unsigned int i = 0; i < graph->V; i++) {
+		add_edges (graph, graph->V, i, 0);
+	}
+	graph->V += 1;
+	// TODO: Add vertex s to adjacency list, and connect weight 0 for every w in A_i. Call add node and add edges
+	/* for (int i = k-1; i >= 0; i--) { */
+
+	/* } */
 
 	return;
 }
@@ -153,6 +163,7 @@ void test_prepro ()
 	add_edges (graph_3, 3, 4, 4);
 	int k = 3;
 	prepro (graph_3, k);
+	pp_graph (graph_3);
 }
 
 void run (const char *fname_read, const char *fname_write)
@@ -178,7 +189,7 @@ int main (int argc, char *argv[])
 	};
 
 	test_prepro ();
-	hardcoded_tests ();
+	/* hardcoded_tests (); */
 
 	return EXIT_SUCCESS;
 }

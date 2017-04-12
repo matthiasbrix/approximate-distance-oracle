@@ -6,8 +6,8 @@ struct Graph* init_graph (int V)
 {
 	struct Graph *graph = malloc (sizeof (struct Graph));
 	graph->V = V;
-	graph->adjlists = malloc (V * sizeof (struct Adjlist));
-	for (int i = 0; i < V; i++) {
+	graph->adjlists = malloc ((V+1) * sizeof (struct Adjlist));
+	for (int i = 0; i < V+1; i++) {
 		graph->adjlists[i].head = NULL;
 	}
 	return graph;
@@ -60,10 +60,6 @@ struct heap_t* initialise_single_source (struct Graph *graph, int s)
 
 	return heap;
 }
-
-/*
-1) Det burde ikke være nødvendigt at bruge en hash-tabel. Hvis jeg forstår dit problem korrekt, så burde du kunne nøjes med bidirected pointers mellem hver knude i grafen og hver knude i din heap. Disse pointers kræver tilsammen O(n) plads, men den mængde plads skal du alligevel bruge på at gemme grafen, dvs. dit asymptotiske pladsforbrug øges ikke med disse pointers. Hvis du bruger heap-implementationen fra Cormen, kan du i stedet for pointers bruge heltal mellem 0 og n-1 (eller mellem 1 og n hvis du bruger 1-indekseringen fra Cormen) til at indikere knuder i heap'en, dvs. et heltal indikerer positionen for knuden i heap-array'et. Ligeledes kan grafknuder repræsenteres med heltal mellem 0 og n-1, hvis de er gemt i et array.
- */
 
 // The total run time is O(V lg V + E lg V), which is O(E lg V) because V is O(E) assuming a connected graph.
 struct node* dijkstra_alg (struct Graph *graph, int s)

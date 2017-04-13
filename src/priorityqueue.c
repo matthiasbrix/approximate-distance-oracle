@@ -98,6 +98,7 @@ void decrease_key (struct heap_t *heap, struct node *v)
 
 void pp_heap (struct heap_t *hp)
 {
+	printf ("PRINT HEAP NODES\n");
 	for (int i = 0; i < hp->heap_size; i++) {
 		printf ("%d %d %d \n", hp->nodes[i]->sp_est, hp->nodes[i]->v_id,
 			hp->nodes[i]->index);

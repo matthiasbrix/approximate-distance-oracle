@@ -6,8 +6,8 @@ struct Graph* init_graph (int V)
 {
 	struct Graph *graph = malloc (sizeof (struct Graph));
 	graph->V = V;
-	graph->adjlists = malloc ((V+1) * sizeof (struct Adjlist));
-	for (int i = 0; i < V+1; i++) {
+	graph->adjlists = malloc ((V) * sizeof (struct Adjlist));
+	for (int i = 0; i < V; i++) {
 		graph->adjlists[i].head = NULL;
 	}
 	return graph;
@@ -32,6 +32,30 @@ void add_edges (struct Graph *graph, int u, int v, unsigned int w)
 	node = add_node (u, w);
 	node->next = graph->adjlists[v].head;
 	graph->adjlists[v].head = node;
+}
+
+struct heap_t* initialise_single_sourc_tz (struct Graph *graph)
+{
+
+	struct heap_t *heap = malloc (sizeof (struct heap_t));
+	heap->nodes = malloc ((graph->V+1) * sizeof(struct node*));
+
+	if (heap == NULL || heap->nodes == NULL) {
+		printf ("Pointer error of heap\n");
+		return NULL;
+	}
+
+	int val = (int) INFINITY;
+
+	for (unsigned int i = 0; i < graph->V; i++) {
+		struct node *tmp = add_heap_node (i, val);
+		heap->nodes[i] = tmp;
+		graph->adjlists[i].nd = tmp;
+	}
+
+	heap->heap_size = graph->V;
+
+	return heap;
 }
 
 // O(n)

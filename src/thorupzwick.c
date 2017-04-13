@@ -1,7 +1,7 @@
 #include "thorupzwick.h"
 #include <time.h>
 
-// #define DEBUG
+#define DEBUG
 
 void print_seqs (struct node **A, int k, int *seqsizes)
 {
@@ -15,10 +15,9 @@ void print_seqs (struct node **A, int k, int *seqsizes)
 	}
 }
 
-// TODO: implement modified dijkstra
-struct node *dijkstra_alg_tz (struct Graph *graph, int s)
+// TODO: Find afstande af i-centers til alle
+struct node *dijkstra_alg_tz (struct Graph *graph, struct heap_t *Q)
 {
-	struct heap_t *Q = initialise_single_source (graph, s);
 	struct node *S = malloc (Q->heap_size * sizeof (struct node));
 	int i = 0;
 	while (Q->heap_size != 0) {
@@ -37,13 +36,27 @@ struct node *dijkstra_alg_tz (struct Graph *graph, int s)
 	return S;
 }
 
+void add_s_node_to_graph (struct Graph *graph, struct node *ai, int ailen)
+{
+	// The added node s will always have the vertex id of the no. of vertices
+	for (int i = 0; i < ailen; i++) {
+		add_edges (graph, graph->V, ai[i].v_id, 0);
+	}
+
+	return;
+}
+
+/*
+Nu er der to steder, hvor Dijkstra bruges i Thorup-Zwick-preprocessing. Den ene er helt almindelig Dijkstra fra en enkelt knude, den anden er en modificeret version af Dijkstra, der bruges til at finde clusters. Jeg går ud fra, at det er den første, du tænker på. Målet er her at finde, for hvert i og for hver knude v, den nærmeste knude p_i(v) til v i A_i samt afstanden d(v,A_i) fra v til p_i(v). Det gøres ved at udvide G ved at tilføje en ny start-knude med kanter af vægt 0 til hver knude i A_i og så køre Dijkstra fra denne nye startknude i den udvidede graf.
+ */
+
 // Should have at most time complexity O(kn^{1+1/k})
 void prepro (struct Graph *graph, int k)
 {
 	// array of k pointers
 	struct node *A[k];
 	// TODO: Change to adjlist or spørg Christian om det er ok.
-	struct heap_t *S = initialise_single_source (graph, 0);
+	struct heap_t *S = initialise_single_sourc_tz (graph);
 	struct node tmp_arr[graph->V];
 	int seqsizes[k];
 
@@ -67,18 +80,12 @@ void prepro (struct Graph *graph, int k)
 			double rnd = (double)rand()/RAND_MAX;
 			// Check random number is <= n^{-1/k}
 			if (rnd <= pow (graph->V, -1.0/(double)k)) {
-				struct node *t = &A[i-1][j];
-				#ifdef DEBUG
-				printf ("added to A_%d from A_%d %d %d\n", i, i-1,
-						t->v_id, t->sp_est);
-				#endif
-				memcpy (&tmp_arr[seqsizes[i]], t,
+				memcpy (&tmp_arr[seqsizes[i]], &A[i-1][j],
 						sizeof (struct node));
 				seqsizes[i] += 1;
 			}
 		}
 		A[i] = malloc (seqsizes[i] * sizeof (struct node));
-
 		for (int l = 0; l < seqsizes[i]; l++) {
 			memcpy (&A[i][l], &tmp_arr[l], sizeof (struct node));
 		}
@@ -86,15 +93,44 @@ void prepro (struct Graph *graph, int k)
 	#ifdef DEBUG
 	print_seqs (A, k, seqsizes);
 	#endif
-	// The added node w will always have the vertex id of the no. of vertices
-	for (unsigned int i = 0; i < graph->V; i++) {
-		add_edges (graph, graph->V, i, 0);
-	}
-	graph->V += 1;
-	// TODO: Add vertex s to adjacency list, and connect weight 0 for every w in A_i. Call add node and add edges
-	/* for (int i = k-1; i >= 0; i--) { */
 
-	/* } */
+	for (int i = k-1; i >= 0; i--) {
+
+		if (seqsizes[i] == 0) {
+			continue;
+		}
+		struct Graph *write_graph = malloc (sizeof (struct Graph));
+		write_graph->adjlists = malloc ((graph->V+1) * sizeof (struct Adjlist));
+		// cpy all adjlists to write graph struct
+		for (unsigned int a = 0; a < graph->V; a++) {
+			memcpy (&write_graph->adjlists[a], &graph->adjlists[a], sizeof (struct Adjlist));
+		}
+		write_graph->V = graph->V;
+		// adding source vertex s to G, weight 0 to all other vertices in A_i
+		printf ("write graph\n");
+		pp_graph (write_graph);
+		add_s_node_to_graph (write_graph, A[i], seqsizes[i]);
+		struct node *tmp = add_heap_node (write_graph->V, 0);
+		S->nodes[S->heap_size] = tmp;
+		write_graph->adjlists[write_graph->V].nd = tmp;
+		S->heap_size += 1;
+		write_graph->V += 1;
+		pp_graph (write_graph);
+		printf ("write graph %d\n", i);
+		/* // for every v in V */
+		/* for (unsigned int v = 0; v < graph->V; v++) { */
+		/* 	// compute d(A_i, v) */
+		/* 	for (int j = 0; j < seqsizes[i]; j++) { */
+		/* 		dijkstra_alg_tz (write_graph, S); */
+		/* 	} */
+		/* } */
+		/* // Prepare to overwrite the s node with a new */
+		S->heap_size -= 1;
+		write_graph->V -= 1;
+	}
+
+	printf ("size: %d\n", S->heap_size);
+	pp_heap (S);
 
 	return;
 }

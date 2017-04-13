@@ -28,6 +28,11 @@ struct node {
   UT_hash_handle hh; /* makes this structure hashable */
 };
 
+struct heap_t {
+  struct node **nodes;
+  int heap_size;
+};
+
 struct AdjListNode {
   int v_id;
   int weight;
@@ -36,19 +41,13 @@ struct AdjListNode {
 
 // TODO Merge adjlist and adjlistnode
 struct Adjlist {
-  struct node *nd;
-  struct AdjListNode *head; // end of list
+  struct node* nd;
+  struct AdjListNode* head; // end of list
 };
 
 struct Graph {
   unsigned int V; // Number of vertices
   struct Adjlist *adjlists;
-};
-
-struct heap_t {
-  // TODO: Change to *nodes
-  struct node **nodes;
-  int heap_size;
 };
 
 struct node *add_heap_node(int id, int distance);
@@ -59,5 +58,6 @@ struct node* minimum (struct heap_t *heap);
 struct node* extract_min (struct heap_t *heap);
 void pp_heap (struct heap_t *hp);
 void decrease_key (struct heap_t *heap, struct node *v);
+struct heap_t* initialise_single_sourc_tz (struct Graph *graph);
 
 #endif

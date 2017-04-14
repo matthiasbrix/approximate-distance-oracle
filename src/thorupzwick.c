@@ -20,6 +20,8 @@ struct node *dijkstra_alg_tz (struct Graph *graph, struct heap_t *Q)
 {
 	struct node *S = malloc (Q->heap_size * sizeof (struct node));
 	int i = 0;
+	// TODO: Lav kopi af Q før det bliver passed
+	pp_heap (Q);
 	while (Q->heap_size != 0) {
 		struct node *u = extract_min (Q);
 		memcpy (&S[i], u, sizeof (struct node));
@@ -33,6 +35,7 @@ struct node *dijkstra_alg_tz (struct Graph *graph, struct heap_t *Q)
 		}
 		i += 1;
 	}
+	pp_nodes (S, graph->V+1);
 	return S;
 }
 
@@ -46,6 +49,9 @@ void add_s_node_to_graph (struct Graph *graph, struct node *ai, int ailen)
 	return;
 }
 
+// TODO:
+void find_pivot () { }
+
 /*
 Nu er der to steder, hvor Dijkstra bruges i Thorup-Zwick-preprocessing. Den ene er helt almindelig Dijkstra fra en enkelt knude, den anden er en modificeret version af Dijkstra, der bruges til at finde clusters. Jeg går ud fra, at det er den første, du tænker på. Målet er her at finde, for hvert i og for hver knude v, den nærmeste knude p_i(v) til v i A_i samt afstanden d(v,A_i) fra v til p_i(v). Det gøres ved at udvide G ved at tilføje en ny start-knude med kanter af vægt 0 til hver knude i A_i og så køre Dijkstra fra denne nye startknude i den udvidede graf.
  */
@@ -55,8 +61,10 @@ void prepro (struct Graph *graph, int k)
 {
 	// array of k pointers
 	struct node *A[k];
-	// TODO: Change to adjlist or spørg Christian om det er ok.
+	// TODO: Change to adjlist eller spørg Christian om det er ok.
 	struct heap_t *S = initialise_single_sourc_tz (graph);
+	// TODO: Check this below
+	struct node **res = malloc ((graph->V+1) * sizeof(struct node));
 	struct node tmp_arr[graph->V];
 	int seqsizes[k];
 
@@ -94,43 +102,34 @@ void prepro (struct Graph *graph, int k)
 	print_seqs (A, k, seqsizes);
 	#endif
 
+	// k iterations
 	for (int i = k-1; i >= 0; i--) {
 
 		if (seqsizes[i] == 0) {
 			continue;
 		}
-		struct Graph *write_graph = malloc (sizeof (struct Graph));
-		write_graph->adjlists = malloc ((graph->V+1) * sizeof (struct Adjlist));
-		// cpy all adjlists to write graph struct
-		for (unsigned int a = 0; a < graph->V; a++) {
-			memcpy (&write_graph->adjlists[a], &graph->adjlists[a], sizeof (struct Adjlist));
-		}
-		write_graph->V = graph->V;
+		struct Graph *write_graph = copy_graph_struct (graph);
 		// adding source vertex s to G, weight 0 to all other vertices in A_i
-		printf ("write graph\n");
-		pp_graph (write_graph);
 		add_s_node_to_graph (write_graph, A[i], seqsizes[i]);
 		struct node *tmp = add_heap_node (write_graph->V, 0);
 		S->nodes[S->heap_size] = tmp;
 		write_graph->adjlists[write_graph->V].nd = tmp;
 		S->heap_size += 1;
 		write_graph->V += 1;
-		pp_graph (write_graph);
-		printf ("write graph %d\n", i);
-		/* // for every v in V */
-		/* for (unsigned int v = 0; v < graph->V; v++) { */
-		/* 	// compute d(A_i, v) */
-		/* 	for (int j = 0; j < seqsizes[i]; j++) { */
-		/* 		dijkstra_alg_tz (write_graph, S); */
-		/* 	} */
-		/* } */
-		/* // Prepare to overwrite the s node with a new */
+		// for every v in V
+		for (unsigned int v = 0; v < graph->V; v++) {
+			struct heap_t *write_heap = copy_heap_struct (S);
+			pp_heap (write_heap);
+			res = res;
+			// compute d(A_i, v)
+			/* res[v] = dijkstra_alg_tz (write_graph, S); */
+			/* pp_nodes (res[0], graph->V+1); */
+		}
+		// TODO: Skal knude s beholdes i heap?
+		// Prepare to overwrite the s node with a new
 		S->heap_size -= 1;
 		write_graph->V -= 1;
 	}
-
-	printf ("size: %d\n", S->heap_size);
-	pp_heap (S);
 
 	return;
 }

@@ -22,6 +22,20 @@ void swap_nodes (struct node **ptr1, struct node **ptr2)
 	*ptr2 = temp;
 }
 
+struct heap_t* copy_heap_struct (struct heap_t* old_heap)
+{
+	struct heap_t* new_heap = malloc (sizeof (struct heap_t));
+	new_heap->nodes = malloc ((old_heap->heap_size) * sizeof (struct node));
+
+	for (int i = 0; i < old_heap->heap_size; i++) {
+		memcpy (&new_heap->nodes[i], &old_heap->nodes[i], sizeof (struct node));
+	}
+
+	new_heap->heap_size = old_heap->heap_size;
+
+	return new_heap;
+}
+
 void min_heapify (struct heap_t *heap, unsigned int i)
 {
 	int left = LCHILD(i);

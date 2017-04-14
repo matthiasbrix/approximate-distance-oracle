@@ -59,5 +59,6 @@ struct node* extract_min (struct heap_t *heap);
 void pp_heap (struct heap_t *hp);
 void decrease_key (struct heap_t *heap, struct node *v);
 struct heap_t* initialise_single_sourc_tz (struct Graph *graph);
+struct heap_t* copy_heap_struct (struct heap_t* old_heap);
 
 #endif

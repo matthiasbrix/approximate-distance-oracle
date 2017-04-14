@@ -34,6 +34,19 @@ void add_edges (struct Graph *graph, int u, int v, unsigned int w)
 	graph->adjlists[v].head = node;
 }
 
+struct Graph* copy_graph_struct (struct Graph* old_graph)
+{
+	struct Graph* new_graph = malloc (sizeof (struct Graph));
+	new_graph->adjlists = malloc ((old_graph->V+1) * sizeof (struct Adjlist));
+	// cpy all adjlists to write graph struct
+	for (unsigned int a = 0; a < old_graph->V; a++) {
+		memcpy (&new_graph->adjlists[a], &old_graph->adjlists[a], sizeof (struct Adjlist));
+	}
+	new_graph->V = old_graph->V;
+
+	return new_graph;
+}
+
 struct heap_t* initialise_single_sourc_tz (struct Graph *graph)
 {
 

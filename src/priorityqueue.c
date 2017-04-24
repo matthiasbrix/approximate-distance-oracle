@@ -25,12 +25,16 @@ void swap_nodes (struct node **ptr1, struct node **ptr2)
 struct heap_t* copy_heap_struct (struct heap_t* old_heap)
 {
 	struct heap_t* new_heap = malloc (sizeof (struct heap_t));
-	new_heap->nodes = malloc ((old_heap->heap_size) * sizeof (struct node));
+	new_heap->nodes = malloc ((old_heap->heap_size) * sizeof (struct node*));
 
-	for (int i = 0; i < old_heap->heap_size; i++) {
-		memcpy (&new_heap->nodes[i], &old_heap->nodes[i], sizeof (struct node));
+	if (new_heap == NULL || new_heap->nodes == NULL) {
+		printf ("Pointer error in copy of heap\n");
+		return NULL;
 	}
-
+	for (int i = 0; i < old_heap->heap_size; i++) {
+		new_heap->nodes[i] = malloc (sizeof (struct node));
+		memcpy (new_heap->nodes[i], old_heap->nodes[i], sizeof (struct node));
+	}
 	new_heap->heap_size = old_heap->heap_size;
 
 	return new_heap;
@@ -41,6 +45,7 @@ void min_heapify (struct heap_t *heap, unsigned int i)
 	int left = LCHILD(i);
 	int right = RCHILD(i);
 	unsigned int lowest;
+
 	if (left < heap->heap_size &&
 		heap->nodes[left]->sp_est < heap->nodes[i]->sp_est) {
 		lowest = left;
@@ -92,13 +97,29 @@ struct node* extract_min (struct heap_t *heap)
 	return min;
 }
 
+void fix_positions (struct heap_t *heap)
+{
+	int u = heap->nodes[heap->heap_size-1]->index;
+	while (u > 0 && heap->nodes[PARENT(u)]->sp_est > heap->nodes[u]->sp_est) {
+		heap->nodes[u]->index = PARENT(u);
+		heap->nodes[PARENT(u)]->index = u;
+		// swap nodes in heap
+		swap_nodes (&heap->nodes[u], &heap->nodes[PARENT(u)]);
+		// move to parent index
+		u = PARENT (u);
+	}
+	return;
+}
+
 void decrease_key (struct heap_t *heap, struct node *v)
 {
 	int i = v->index;
 	if (v->sp_est > heap->nodes[i]->sp_est) {
-		printf ("Error with decrease %d\n", KEY_SIZE);
+		printf ("Error (%d) with decrease node v %d\n", KEY_SIZE, v->v_id);
 		return;
 	}
+
+	memcpy (heap->nodes[i], v, sizeof (struct node));
 	// Traverse tree up while the tree is not heapified. O(lg n)
 	while (i > 0 && heap->nodes[PARENT(i)]->sp_est > heap->nodes[i]->sp_est) {
 		heap->nodes[i]->index = PARENT(i);
@@ -112,10 +133,10 @@ void decrease_key (struct heap_t *heap, struct node *v)
 
 void pp_heap (struct heap_t *hp)
 {
-	printf ("PRINT HEAP NODES\n");
+	printf ("\nPRINT HEAP NODES\n");
+	printf ("SPEST ID INDEX\n");
 	for (int i = 0; i < hp->heap_size; i++) {
-		printf ("%d %d %d \n", hp->nodes[i]->sp_est, hp->nodes[i]->v_id,
-			hp->nodes[i]->index);
+		printf ("%d %d %d \n", hp->nodes[i]->sp_est, hp->nodes[i]->v_id, hp->nodes[i]->index);
 	}
 	printf ("\n");
 	return;

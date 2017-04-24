@@ -13,5 +13,6 @@ struct heap_t *initialise_single_source (struct Graph *graph, int s);
 struct AdjListNode* add_node (int v, int weight);
 void add_edges (struct Graph *graph, int u, int v, unsigned int w);
 struct Graph* copy_graph_struct (struct Graph* old_graph);
+struct heap_t* initialise_single_source_tz (struct Graph *graph);
 
 #endif

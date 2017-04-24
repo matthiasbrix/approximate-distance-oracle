@@ -20,6 +20,17 @@
 
 extern struct node *hash_heap;
 
+/**
+ * TODO: HOW TO COMMENT
+ * down_timeout - acquire the semaphore within a specified time
+ * @sem: the semaphore to be acquired
+ * @timeout: how long to wait before failing
+ *
+ * Attempts to acquire the semaphore.  If no more tasks are allowed to
+ * acquire the semaphore, calling this function will put the task to sleep.
+ * If the semaphore is not released within the specified number of jiffies,
+ * this function returns -ETIME.  It returns 0 if the semaphore was acquired.
+ */
 struct node {
   int v_id;
   int sp_est;
@@ -28,11 +39,13 @@ struct node {
   UT_hash_handle hh; /* makes this structure hashable */
 };
 
+// TODO: rename to heap
 struct heap_t {
   struct node **nodes;
   int heap_size;
 };
 
+// TODO: rename to adjlistnode
 struct AdjListNode {
   int v_id;
   int weight;
@@ -45,6 +58,7 @@ struct Adjlist {
   struct AdjListNode* head; // end of list
 };
 
+// TODO: rename to graph
 struct Graph {
   unsigned int V; // Number of vertices
   struct Adjlist *adjlists;
@@ -58,7 +72,7 @@ struct node* minimum (struct heap_t *heap);
 struct node* extract_min (struct heap_t *heap);
 void pp_heap (struct heap_t *hp);
 void decrease_key (struct heap_t *heap, struct node *v);
-struct heap_t* initialise_single_sourc_tz (struct Graph *graph);
 struct heap_t* copy_heap_struct (struct heap_t* old_heap);
+void fix_positions (struct heap_t *heap);
 
 #endif

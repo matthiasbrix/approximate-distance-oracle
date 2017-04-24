@@ -47,7 +47,7 @@ struct Graph* copy_graph_struct (struct Graph* old_graph)
 	return new_graph;
 }
 
-struct heap_t* initialise_single_sourc_tz (struct Graph *graph)
+struct heap_t* initialise_single_source_tz (struct Graph *graph)
 {
 
 	struct heap_t *heap = malloc (sizeof (struct heap_t));
@@ -63,7 +63,9 @@ struct heap_t* initialise_single_sourc_tz (struct Graph *graph)
 	for (unsigned int i = 0; i < graph->V; i++) {
 		struct node *tmp = add_heap_node (i, val);
 		heap->nodes[i] = tmp;
-		graph->adjlists[i].nd = tmp;
+		// TODO: Skal være pointer til heap->nodes[i]
+		graph->adjlists[i].nd = heap->nodes[i];
+		// &heap->nodes[i]
 	}
 
 	heap->heap_size = graph->V;
@@ -88,12 +90,14 @@ struct heap_t* initialise_single_source (struct Graph *graph, int s)
 	for (unsigned int i = 0; i < graph->V; i++) {
 		struct node *tmp = add_heap_node (i, val);
 		heap->nodes[i] = tmp;
-		graph->adjlists[i].nd = tmp;
+		graph->adjlists[i].nd = heap->nodes[i];
 	}
 
 	heap->heap_size = graph->V;
 	struct node *v = graph->adjlists[s].nd;
 	heap->nodes[v->v_id]->sp_est = 0;
+
+	// TODO: min heapify / reorder here?
 
 	return heap;
 }
@@ -146,4 +150,6 @@ void pp_nodes (struct node *S, int i)
 			printf ("vertex: %d v.d: %d v.pi %d\n", S[j].v_id, S[j].sp_est, S[j].pi->v_id);
 		}
 	}
+
+	return;
 }

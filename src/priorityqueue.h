@@ -71,8 +71,9 @@ void build_min_heap (struct heap_t *heap);
 struct node* minimum (struct heap_t *heap);
 struct node* extract_min (struct heap_t *heap);
 void pp_heap (struct heap_t *hp);
-void decrease_key (struct heap_t *heap, struct node *v);
+/* void decrease_key (struct heap_t *heap, struct node *v); */
+void decrease_key (struct heap_t *heap, struct node *v, struct node *u, int sp_est);
 struct heap_t* copy_heap_struct (struct heap_t* old_heap);
-void fix_positions (struct heap_t *heap);
+void fix_positions (struct heap_t *heap, int u);
 
 #endif

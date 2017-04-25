@@ -6,7 +6,7 @@
 struct node *hash_heap = NULL;
 
 // A utility function to create a new Min Heap Node
-struct node* add_heap_node (int id, int distance)
+struct node *add_heap_node (int id, int distance)
 {
 	struct node *s = malloc (sizeof(struct node));
 	s->v_id = s->index = id;
@@ -22,9 +22,9 @@ void swap_nodes (struct node **ptr1, struct node **ptr2)
 	*ptr2 = temp;
 }
 
-struct heap_t* copy_heap_struct (struct heap_t* old_heap)
+struct heap_t *copy_heap_struct (struct heap_t *old_heap)
 {
-	struct heap_t* new_heap = malloc (sizeof (struct heap_t));
+	struct heap_t *new_heap = malloc (sizeof (struct heap_t));
 	new_heap->nodes = malloc ((old_heap->heap_size) * sizeof (struct node*));
 
 	if (new_heap == NULL || new_heap->nodes == NULL) {
@@ -97,10 +97,9 @@ struct node* extract_min (struct heap_t *heap)
 	return min;
 }
 
-void fix_positions (struct heap_t *heap)
+void fix_positions (struct heap_t *heap, int u)
 {
-	int u = heap->nodes[heap->heap_size-1]->index;
-	while (u > 0 && heap->nodes[PARENT(u)]->sp_est > heap->nodes[u]->sp_est) {
+	while ((u > 0) && (heap->nodes[PARENT(u)]->sp_est > heap->nodes[u]->sp_est)) {
 		heap->nodes[u]->index = PARENT(u);
 		heap->nodes[PARENT(u)]->index = u;
 		// swap nodes in heap
@@ -111,14 +110,16 @@ void fix_positions (struct heap_t *heap)
 	return;
 }
 
-void decrease_key (struct heap_t *heap, struct node *v)
+void decrease_key (struct heap_t *heap, struct node *v, struct node *u, int sp_est)
 {
+	v->sp_est = sp_est;
+	v->pi = u;
 	int i = v->index;
+
 	if (v->sp_est > heap->nodes[i]->sp_est) {
-		printf ("Error (%d) with decrease node v %d\n", KEY_SIZE, v->v_id);
+		printf ("Error (%d) with decreasing node v %d\n", KEY_SIZE, v->v_id);
 		return;
 	}
-
 	memcpy (heap->nodes[i], v, sizeof (struct node));
 	// Traverse tree up while the tree is not heapified. O(lg n)
 	while (i > 0 && heap->nodes[PARENT(i)]->sp_est > heap->nodes[i]->sp_est) {

@@ -9,6 +9,7 @@ struct Graph* init_graph (int V)
 	graph->adjlists = malloc ((V) * sizeof (struct Adjlist));
 	for (int i = 0; i < V; i++) {
 		graph->adjlists[i].head = NULL;
+		graph->adjlists[i].nd = NULL;
 	}
 	return graph;
 }
@@ -34,13 +35,14 @@ void add_edges (struct Graph *graph, int u, int v, unsigned int w)
 	graph->adjlists[v].head = node;
 }
 
-struct Graph* copy_graph_struct (struct Graph* old_graph)
+struct Graph *copy_graph_struct (struct Graph* old_graph, struct heap_t *heap)
 {
 	struct Graph* new_graph = malloc (sizeof (struct Graph));
 	new_graph->adjlists = malloc ((old_graph->V+1) * sizeof (struct Adjlist));
 	// cpy all adjlists to write graph struct
 	for (unsigned int a = 0; a < old_graph->V; a++) {
 		memcpy (&new_graph->adjlists[a], &old_graph->adjlists[a], sizeof (struct Adjlist));
+		memcpy (&new_graph->adjlists[a].nd, &heap->nodes[a], sizeof (struct node*));
 	}
 	new_graph->V = old_graph->V;
 
@@ -63,9 +65,7 @@ struct heap_t* initialise_single_source_tz (struct Graph *graph)
 	for (unsigned int i = 0; i < graph->V; i++) {
 		struct node *tmp = add_heap_node (i, val);
 		heap->nodes[i] = tmp;
-		// TODO: Skal være pointer til heap->nodes[i]
-		graph->adjlists[i].nd = heap->nodes[i];
-		// &heap->nodes[i]
+		memcpy (&graph->adjlists[i].nd, &heap->nodes[i], sizeof (struct node*));
 	}
 
 	heap->heap_size = graph->V;
@@ -90,7 +90,7 @@ struct heap_t* initialise_single_source (struct Graph *graph, int s)
 	for (unsigned int i = 0; i < graph->V; i++) {
 		struct node *tmp = add_heap_node (i, val);
 		heap->nodes[i] = tmp;
-		graph->adjlists[i].nd = heap->nodes[i];
+		memcpy (&graph->adjlists[i].nd, &heap->nodes[i], sizeof (struct node*));
 	}
 
 	heap->heap_size = graph->V;
@@ -114,14 +114,45 @@ struct node* dijkstra_alg (struct Graph *graph, int s)
 		for (struct AdjListNode *s = graph->adjlists[u->v_id].head; s != NULL; s = s->next) {
 			struct node *v = graph->adjlists[s->v_id].nd;
 			if ((v != NULL) && (v->sp_est > u->sp_est + s->weight)) {
-				v->sp_est = u->sp_est + s->weight;
-				v->pi = u;
-				decrease_key (Q, v);
+				int sp_est = u->sp_est + s->weight;
+				decrease_key (Q, v, u, sp_est);
 			}
 		}
 		i += 1;
 	}
 	return S;
+}
+
+// O(m lg n)
+// pop takes lg n, V = E = m = n, loop m times
+struct node *dijkstra_alg_tz (struct Graph *graph, struct heap_t *Q)
+{
+	struct node *S = malloc (Q->heap_size * sizeof (struct node));
+	int i = 0;
+	while (Q->heap_size != 0) {
+		struct node *u = extract_min (Q);
+		memcpy (&S[i], u, sizeof (struct node));
+		for (struct AdjListNode *s = graph->adjlists[u->v_id].head;
+			 s != NULL; s = s->next) {
+			struct node *v = graph->adjlists[s->v_id].nd;
+			if ((v != NULL) && (v->sp_est > u->sp_est + s->weight)) {
+				int sp_est = u->sp_est + s->weight;
+				decrease_key (Q, v, u, sp_est);
+			}
+		}
+		i += 1;
+	}
+
+	return S;
+}
+
+void add_s_node_to_graph (struct Graph *graph, struct node *ai, int ailen)
+{
+	// The added node s will always have the vertex id of the no. of vertices
+	for (int i = 0; i < ailen; i++) {
+		add_edges (graph, graph->V, ai[i].v_id, 0);
+	}
+	return;
 }
 
 void pp_graph (struct Graph* graph)

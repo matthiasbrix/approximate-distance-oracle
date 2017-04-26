@@ -117,10 +117,14 @@ void decrease_key (struct heap_t *heap, struct node *v, struct node *u, int sp_e
 	int i = v->index;
 
 	if (v->sp_est > heap->nodes[i]->sp_est) {
-		printf ("Error (%d) with decreasing node v %d\n", KEY_SIZE, v->v_id);
+		printf ("Error (%d) with decreasing node vertex:%d, spest:%d\n", KEY_SIZE, v->v_id, v->sp_est);
 		return;
 	}
-	memcpy (heap->nodes[i], v, sizeof (struct node));
+/* memcpy (heap->nodes[i], v, sizeof (struct node)); */
+	heap->nodes[i]->sp_est = v->sp_est;
+	heap->nodes[i]->pi = u;
+	heap->nodes[i]->index = v->index;
+
 	// Traverse tree up while the tree is not heapified. O(lg n)
 	while (i > 0 && heap->nodes[PARENT(i)]->sp_est > heap->nodes[i]->sp_est) {
 		heap->nodes[i]->index = PARENT(i);

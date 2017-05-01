@@ -2,11 +2,11 @@
 
 #define DEBUG
 
-struct Graph* init_graph (int V)
+struct graph* init_graph (int V)
 {
-	struct Graph *graph = malloc (sizeof (struct Graph));
+	struct graph *graph = malloc (sizeof (struct graph));
 	graph->V = V;
-	graph->adjlists = malloc ((V) * sizeof (struct Adjlist));
+	graph->adjlists = malloc ((V) * sizeof (struct adjlist));
 	for (int i = 0; i < V; i++) {
 		graph->adjlists[i].head = NULL;
 		graph->adjlists[i].nd = NULL;
@@ -14,9 +14,9 @@ struct Graph* init_graph (int V)
 	return graph;
 }
 
-struct AdjListNode* add_node (int v, int weight)
+struct adjlistnode *add_adj_node (int v, int weight)
 {
-	struct AdjListNode *node = malloc (sizeof (struct AdjListNode));
+	struct adjlistnode *node = malloc (sizeof (struct adjlistnode));
 	node->v_id = v;
 	node->weight = weight;
 	node->next = NULL;
@@ -24,24 +24,24 @@ struct AdjListNode* add_node (int v, int weight)
 	return node;
 }
 
-void add_edges (struct Graph *graph, int u, int v, unsigned int w)
+void add_edges (struct graph *graph, int u, int v, unsigned int w)
 {
-	struct AdjListNode *node = add_node (v, w);
+	struct adjlistnode *node = add_adj_node (v, w);
 	node->next = graph->adjlists[u].head;
 	graph->adjlists[u].head = node;
 	// undirected -> add other way as well
-	node = add_node (u, w);
+	node = add_adj_node (u, w);
 	node->next = graph->adjlists[v].head;
 	graph->adjlists[v].head = node;
 }
 
-struct Graph *copy_graph_struct (struct Graph* old_graph, struct heap_t *heap)
+struct graph *copy_graph_struct (struct graph *old_graph, struct heap *heap)
 {
-	struct Graph* new_graph = malloc (sizeof (struct Graph));
-	new_graph->adjlists = malloc ((old_graph->V+1) * sizeof (struct Adjlist));
+	struct graph* new_graph = malloc (sizeof (struct graph));
+	new_graph->adjlists = malloc ((old_graph->V+1) * sizeof (struct adjlist));
 	// cpy all adjlists to write graph struct
 	for (unsigned int a = 0; a < old_graph->V; a++) {
-		memcpy (&new_graph->adjlists[a], &old_graph->adjlists[a], sizeof (struct Adjlist));
+		memcpy (&new_graph->adjlists[a], &old_graph->adjlists[a], sizeof (struct adjlist));
 		memcpy (&new_graph->adjlists[a].nd, &heap->nodes[a], sizeof (struct node*));
 	}
 	new_graph->V = old_graph->V;
@@ -49,10 +49,10 @@ struct Graph *copy_graph_struct (struct Graph* old_graph, struct heap_t *heap)
 	return new_graph;
 }
 
-struct heap_t* initialise_single_source_tz (struct Graph *graph)
+struct heap* initialise_single_source_tz (struct graph *graph)
 {
-
-	struct heap_t *heap = malloc (sizeof (struct heap_t));
+	struct heap *heap = malloc (sizeof (struct heap));
+	// One extra slot for node s (later used for dijkstra)
 	heap->nodes = malloc ((graph->V+1) * sizeof(struct node*));
 
 	if (heap == NULL || heap->nodes == NULL) {
@@ -63,7 +63,7 @@ struct heap_t* initialise_single_source_tz (struct Graph *graph)
 	int val = (int) INFINITY;
 
 	for (unsigned int i = 0; i < graph->V; i++) {
-		struct node *tmp = add_heap_node (i, val);
+		struct node *tmp = add_node (i, val, i);
 		heap->nodes[i] = tmp;
 		memcpy (&graph->adjlists[i].nd, &heap->nodes[i], sizeof (struct node*));
 	}
@@ -74,10 +74,9 @@ struct heap_t* initialise_single_source_tz (struct Graph *graph)
 }
 
 // O(n)
-struct heap_t* initialise_single_source (struct Graph *graph, int s)
+struct heap* initialise_single_source (struct graph *graph, int s)
 {
-
-	struct heap_t *heap = malloc (sizeof (struct heap_t));
+	struct heap *heap = malloc (sizeof (struct heap));
 	heap->nodes = malloc(graph->V * sizeof(struct node*));
 
 	if (heap == NULL || heap->nodes == NULL) {
@@ -88,7 +87,7 @@ struct heap_t* initialise_single_source (struct Graph *graph, int s)
 	int val = (int) INFINITY;
 
 	for (unsigned int i = 0; i < graph->V; i++) {
-		struct node *tmp = add_heap_node (i, val);
+		struct node *tmp = add_node (i, val, i);
 		heap->nodes[i] = tmp;
 		memcpy (&graph->adjlists[i].nd, &heap->nodes[i], sizeof (struct node*));
 	}
@@ -103,15 +102,16 @@ struct heap_t* initialise_single_source (struct Graph *graph, int s)
 }
 
 // The total run time is O(V lg V + E lg V), which is O(E lg V) because V is O(E) assuming a connected graph.
-struct node* dijkstra_alg (struct Graph *graph, int s)
+struct node* dijkstra_alg (struct graph *graph, int s)
 {
-	struct heap_t *Q = initialise_single_source (graph, s);
+	struct heap *Q = initialise_single_source (graph, s);
 	struct node *S = malloc (Q->heap_size * sizeof (struct node));
 	int i = 0;
 	while (Q->heap_size != 0) {
 		struct node *u = extract_min (Q);
 		memcpy (&S[i], u, sizeof (struct node));
-		for (struct AdjListNode *s = graph->adjlists[u->v_id].head; s != NULL; s = s->next) {
+		for (struct adjlistnode *s = graph->adjlists[u->v_id].head;
+			 s != NULL; s = s->next) {
 			struct node *v = graph->adjlists[s->v_id].nd;
 			if ((v != NULL) && (v->sp_est > u->sp_est + s->weight)) {
 				int sp_est = u->sp_est + s->weight;
@@ -125,14 +125,15 @@ struct node* dijkstra_alg (struct Graph *graph, int s)
 
 // O(m lg n)
 // pop takes lg n, V = E = m = n, loop m times
-struct node *dijkstra_alg_tz (struct Graph *graph, struct heap_t *Q)
+struct node *dijkstra_alg_tz (struct graph *graph, struct heap *Q)
 {
 	struct node *S = malloc (Q->heap_size * sizeof (struct node));
 	int i = 0;
 	while (Q->heap_size != 0) {
 		struct node *u = extract_min (Q);
+		// TODO: Overvej at bruge u->v_id til S, altså S[u->v_id], så behøver jeg måske i find_pivot ikke dist, men kan blot nøjes med sps, og kan slette dist. Så skal der holdes int pos i dijkstra, -1 ellers sæt 1 ind hvor v_id er sat
 		memcpy (&S[i], u, sizeof (struct node));
-		for (struct AdjListNode *s = graph->adjlists[u->v_id].head;
+		for (struct adjlistnode *s = graph->adjlists[u->v_id].head;
 			 s != NULL; s = s->next) {
 			struct node *v = graph->adjlists[s->v_id].nd;
 			if ((v != NULL) && (v->sp_est > u->sp_est + s->weight)) {
@@ -142,11 +143,10 @@ struct node *dijkstra_alg_tz (struct Graph *graph, struct heap_t *Q)
 		}
 		i += 1;
 	}
-
 	return S;
 }
 
-void add_s_node_to_graph (struct Graph *graph, struct node *ai, int ailen)
+void add_s_node_to_graph (struct graph *graph, struct node *ai, int ailen)
 {
 	// The added node s will always have the vertex id of the no. of vertices
 	for (int i = 0; i < ailen; i++) {
@@ -155,12 +155,12 @@ void add_s_node_to_graph (struct Graph *graph, struct node *ai, int ailen)
 	return;
 }
 
-void pp_graph (struct Graph* graph)
+void pp_graph (struct graph* graph)
 {
 	printf ("PRINT ADJLIST RESULTS\n");
 	// Skip first, which is not exist in DIMACS files
 	for (unsigned int i = 0; i < graph->V; i++) {
-		struct AdjListNode* node = graph->adjlists[i].head;
+		struct adjlistnode* node = graph->adjlists[i].head;
 		printf("vertex: %d", i);
 		while (node) {
 			printf(" -> v:%i w:%d", node->v_id,

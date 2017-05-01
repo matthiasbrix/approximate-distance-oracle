@@ -31,6 +31,7 @@ extern struct node *hash_heap;
  * If the semaphore is not released within the specified number of jiffies,
  * this function returns -ETIME.  It returns 0 if the semaphore was acquired.
  */
+// TODO: sp_est should be unsigned int
 struct node {
   int v_id;
   int sp_est;
@@ -39,41 +40,38 @@ struct node {
   UT_hash_handle hh; /* makes this structure hashable */
 };
 
-// TODO: rename to heap
-struct heap_t {
+struct heap {
   struct node **nodes;
   int heap_size;
 };
 
-// TODO: rename to adjlistnode
-struct AdjListNode {
+// TODO: weight should be unsigned int
+struct adjlistnode {
   int v_id;
   int weight;
-  struct AdjListNode *next;
+  struct adjlistnode *next;
 };
 
-// TODO Merge adjlist and adjlistnode
-struct Adjlist {
+struct adjlist {
   struct node* nd;
-  struct AdjListNode* head; // end of list
+  struct adjlistnode* head; // start of list
 };
 
-// TODO: rename to graph
-struct Graph {
+struct graph {
   unsigned int V; // Number of vertices
-  struct Adjlist *adjlists;
+  struct adjlist *adjlists;
 };
 
-struct node *add_heap_node(int id, int distance);
+struct node *add_node(int id, int distance, int index);
 void swap_nodes (struct node **ptr1, struct node **ptr2);
-void min_heapify (struct heap_t *heap, unsigned int i);
-void build_min_heap (struct heap_t *heap);
-struct node* minimum (struct heap_t *heap);
-struct node* extract_min (struct heap_t *heap);
-void pp_heap (struct heap_t *hp);
-/* void decrease_key (struct heap_t *heap, struct node *v); */
-void decrease_key (struct heap_t *heap, struct node *v, struct node *u, int sp_est);
-struct heap_t* copy_heap_struct (struct heap_t* old_heap);
-void fix_positions (struct heap_t *heap, int u);
+void min_heapify (struct heap *heap, unsigned int i);
+void build_min_heap (struct heap *heap);
+struct node* minimum (struct heap *heap);
+struct node* extract_min (struct heap *heap);
+void pp_heap (struct heap *hp);
+void decrease_key (struct heap *heap, struct node *v, struct node *u, int sp_est);
+struct heap* copy_heap_struct (struct heap *old_heap);
+void find_node_pos (struct heap *heap, int u);
+void min_heap_insert (struct heap *heap, int id, int distance, struct graph *graph);
 
 #endif

@@ -2,7 +2,7 @@
 
 FILE *file;
 
-void read_from_file (struct Graph *graph, const char *fname)
+void read_from_file (struct graph *graph, const char *fname)
 {
 	char t;
 	int u, v, w;

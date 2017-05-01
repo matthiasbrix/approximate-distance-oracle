@@ -1,15 +1,15 @@
 #include "priorityqueue.h"
 
-// Use a heap to implement a priority queue, need handle in each heap element
-// handle could be array index in the heap
+// Use a heap to implement a priority queue, need handle in each heap element. Handle is index in heap array
 
 struct node *hash_heap = NULL;
 
-// A utility function to create a new Min Heap Node
-struct node *add_heap_node (int id, int distance)
+// A utility function to create a new min heap node
+struct node *add_node (int id, int distance, int index)
 {
 	struct node *s = malloc (sizeof(struct node));
-	s->v_id = s->index = id;
+	s->v_id = id;
+	s->index = index;
 	s->sp_est = distance;
 	s->pi = NULL;
 	return s;
@@ -22,9 +22,9 @@ void swap_nodes (struct node **ptr1, struct node **ptr2)
 	*ptr2 = temp;
 }
 
-struct heap_t *copy_heap_struct (struct heap_t *old_heap)
+struct heap *copy_heap_struct (struct heap *old_heap)
 {
-	struct heap_t *new_heap = malloc (sizeof (struct heap_t));
+	struct heap *new_heap = malloc (sizeof (struct heap));
 	new_heap->nodes = malloc ((old_heap->heap_size) * sizeof (struct node*));
 
 	if (new_heap == NULL || new_heap->nodes == NULL) {
@@ -40,7 +40,7 @@ struct heap_t *copy_heap_struct (struct heap_t *old_heap)
 	return new_heap;
 }
 
-void min_heapify (struct heap_t *heap, unsigned int i)
+void min_heapify (struct heap *heap, unsigned int i)
 {
 	int left = LCHILD(i);
 	int right = RCHILD(i);
@@ -65,7 +65,7 @@ void min_heapify (struct heap_t *heap, unsigned int i)
 	return;
 }
 
-void build_min_heap (struct heap_t *heap)
+void build_min_heap (struct heap *heap)
 {
 	for (int i = ((heap->heap_size - 1) >> 1); i >= 0; i--) {
 		min_heapify (heap, i);
@@ -73,12 +73,12 @@ void build_min_heap (struct heap_t *heap)
 	return;
 }
 
-struct node* minimum (struct heap_t *heap)
+struct node* minimum (struct heap *heap)
 {
 	return heap->nodes[0];
 }
 
-struct node* extract_min (struct heap_t *heap)
+struct node* extract_min (struct heap *heap)
 {
 	if (heap->heap_size < 1) {
 		printf ("Heap underflow %d\n", HEAP_UNDERFLOW);
@@ -97,7 +97,8 @@ struct node* extract_min (struct heap_t *heap)
 	return min;
 }
 
-void fix_positions (struct heap_t *heap, int u)
+// traverses the tree up from the node to the root to find the right position. Makes it heapified again. Running time: O(lg n)
+void find_node_pos (struct heap *heap, int u)
 {
 	while ((u > 0) && (heap->nodes[PARENT(u)]->sp_est > heap->nodes[u]->sp_est)) {
 		heap->nodes[u]->index = PARENT(u);
@@ -110,7 +111,7 @@ void fix_positions (struct heap_t *heap, int u)
 	return;
 }
 
-void decrease_key (struct heap_t *heap, struct node *v, struct node *u, int sp_est)
+void decrease_key (struct heap *heap, struct node *v, struct node *u, int sp_est)
 {
 	v->sp_est = sp_est;
 	v->pi = u;
@@ -120,23 +121,28 @@ void decrease_key (struct heap_t *heap, struct node *v, struct node *u, int sp_e
 		printf ("Error (%d) with decreasing node vertex:%d, spest:%d\n", KEY_SIZE, v->v_id, v->sp_est);
 		return;
 	}
-/* memcpy (heap->nodes[i], v, sizeof (struct node)); */
+
 	heap->nodes[i]->sp_est = v->sp_est;
 	heap->nodes[i]->pi = u;
 	heap->nodes[i]->index = v->index;
 
-	// Traverse tree up while the tree is not heapified. O(lg n)
-	while (i > 0 && heap->nodes[PARENT(i)]->sp_est > heap->nodes[i]->sp_est) {
-		heap->nodes[i]->index = PARENT(i);
-		heap->nodes[PARENT(i)]->index = i;
-		// swap nodes in heap
-		swap_nodes (&heap->nodes[i], &heap->nodes[PARENT(i)]);
-		// move to parent index
-		i = PARENT(i);
-	}
+	find_node_pos (heap, i);
 }
 
-void pp_heap (struct heap_t *hp)
+// Insert node to heap. Graph is passed to update pointer reference. O(lg n)
+void min_heap_insert (struct heap *heap, int id,
+					  int distance, struct graph *graph)
+{
+	heap->nodes[heap->heap_size] = add_node (id, distance, heap->heap_size);
+	graph->adjlists[id].nd = heap->nodes[heap->heap_size];
+	heap->heap_size += 1;
+	int index = heap->nodes[heap->heap_size-1]->index;
+	// Updating the position of the node in the heap
+	find_node_pos (heap, index);
+	return;
+}
+
+void pp_heap (struct heap *hp)
 {
 	printf ("\nPRINT HEAP NODES\n");
 	printf ("SPEST ID INDEX\n");

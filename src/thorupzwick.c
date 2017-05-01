@@ -5,14 +5,14 @@
 #define DEBUG
 
 // TODO:
-void deallocate_heap (struct heap_t *heap)
+void deallocate_heap (struct heap *heap)
 {
 	free (heap->nodes);
 	free (heap);
 }
 
 // TODO:
-void deallocate_graph (struct Graph *graph)
+void deallocate_graph (struct graph *graph)
 {
 	free (graph->adjlists->nd);
 	free (graph->adjlists->head->next);
@@ -33,180 +33,219 @@ void print_seqs (struct node **A, int k, int *seqsizes)
 	}
 }
 
-// TODO: relax the edge (u, v) only if u.d + l(u,v) < d(A_{i+1}, v)
-// TODO: Christian - skal man bare køre ud fra w og ikke andet? Ikke noget med at forbinde w til andre?
-// TODO: Hvad nu hvis A_i+1 er tom?
-// TODO: SKal jeg remove edge?
+// We find p_i(v) to v in A_i as well as the distance d(v, A_i) from v to p_i(v). Note, p_i(v) in A_i and it is nearest to v which means d(p_i(v), v) = d(A_i, v). Note that as A_0 = V, d(A_0, v) = 0 and p_0(v) = v, which applies for all v in V
+// Also, if A_i == NULL, we have no pivot nodes p_i(v) for i
+// TODO: Hold øje med hvordan den vælger hvis flere vertices i A_i har kortest afstand til v, formentlig den første knude er pivot fordi dijsktra kræver skarpt mindre forholdet
+// TODO: I beviset står noget med at hvis (*) fejler så er p_i (v) = p_i+1, men hos mig er det omvendt? Hvornår fejler (*) så?
+struct node* find_pivot (struct node *ai, struct node *aiplusone_pivot_arr,
+						 struct node *nodes, unsigned int n, int ailen, int *dist)
+{
+	// TODO: Use nodes (sps) instead of dist if sps is indexed by v_id
+	struct node* pivot_arr = malloc (n * sizeof (struct node));
+	// starting from one, skipping node s in nodes
+	for (unsigned int i = 1; i < n+1; i++) {
+		bool found = false;
+		for (int j = 0; j < ailen; j++) {
+			// if A_i == v, p_i(v) = v, as d(A_i, v) = 0
+			if (ai[j].v_id == nodes[i].v_id) {
+				memcpy (&pivot_arr[nodes[i].v_id], &ai[j], sizeof(ai[j]));
+				pivot_arr[nodes[i].v_id].sp_est = 0;
+				found = 1;
+			}
+			// if v has v.pi = A_i <=> p_i(v) = A_i
+			else if (nodes[i].pi->v_id == ai[j].v_id) {
+				memcpy (&pivot_arr[nodes[i].v_id], &ai[j], sizeof(ai[j]));
+				pivot_arr[nodes[i].v_id].sp_est = dist[nodes[i].v_id];
+				found = 1;
+			}
+		}
+		// if v has v.pi != A_i, we traverse back from v to A_i as v is in the branch of the shortest paths tree that starts with the edge (s, w), where w ∈ A_i, then δ(A_i, v) = δ(w, v) and we can set p_i (v) ← w
+		if (!found) {
+			struct node *piv = NULL;
+			struct node *v = nodes[i].pi;
+			while (v) {
+				piv = v;
+				// avoid reaching the s node
+				if (v->pi->v_id == nodes[0].v_id)
+					break;
+				v = v->pi;
+			}
+			// let piv be w, thus we set p_i(v) <- w
+			memcpy (&pivot_arr[nodes[i].v_id], piv, sizeof(&piv));
+			pivot_arr[nodes[i].v_id].sp_est = dist[nodes[i].v_id];
+		}
+		// (*) property, if d(A_i, v) == d(A_i+1,v), copy! Means we get p_i(v) = p_i+1(v) ∈ B(v),
+		// otherwise, δ(p_i(v), v) = δ(A_i, v) < δ(A_i+1, v). Thus distance will be same, but the node would change (to A_i+1) if (*) fails
+		if (aiplusone_pivot_arr != 0 && pivot_arr[nodes[i].v_id].sp_est == aiplusone_pivot_arr[nodes[i].v_id].sp_est) {
+			memcpy (&pivot_arr[nodes[i].v_id], &aiplusone_pivot_arr[nodes[i].v_id], sizeof (aiplusone_pivot_arr[nodes[i].v_id]));
+		}
+	}
+	#ifdef DEBUG
+	for (unsigned int i = 1; i < n+1; i++) {
+		printf ("pivot for v:%d is:%d, dist:%d, should be %d\n", nodes[i].v_id, pivot_arr[nodes[i].v_id].v_id, pivot_arr[nodes[i].v_id].sp_est, dist[nodes[i].v_id]);
+	}
+	#endif
+
+	return pivot_arr;
+}
+
+// TODO: Skal de tilæføjede knuder have distance sp_est som er beregnet eller infinity?
+// TODO: Hvad nu hvis en A_i er tom? Så er jo pivot element undefined, derfor inkluderes knuden ikke?
 // cluster C(w) is composed of all the vertices that are closer to w than any (i+1)-center
 // Note that δ(A_{i+1}, v) was computed in the previous iteration so the test takes constant time.
 // Note that if v not in C(w), then we never assign a finite distance, as by definition, v ∈ C(w) if and only if δ(w, v) < δ(A_i+1, v)
-struct node *dijkstra_cluster_tz (struct Graph *graph, struct heap_t *Q,
-								  struct node *w, int *dist, int i)
+struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
+								  struct node *pivot_nodes, int i)
 {
-	struct node *S = malloc (Q->heap_size * sizeof (struct node));
-	assert (S != NULL);
 	int idx = 0;
+	int no_nodes = 0;
+	struct heap *Q = malloc (sizeof (struct heap));
+	assert (Q != NULL);
+	Q->nodes = malloc (sizeof(struct node*));
+	assert (Q->nodes != NULL);
+	struct node *S = malloc (sizeof (struct node));
+	assert (S != NULL);
+	struct cluster *cluster = malloc (sizeof (struct cluster));
+	assert (cluster != NULL);
 
+	Q->heap_size = 0;
 	// w.d = 0
-	Q->nodes[w->index]->sp_est = 0;
-	int u = Q->nodes[w->v_id]->index;
-	fix_positions (Q, u);
+	min_heap_insert (Q, w->v_id, 0, graph);
+	no_nodes++;
 
 	#ifdef DEBUG
-	int b;
-	for (b = 0; b < (int) graph->V; b++)
-		printf("dist[%d][%d]=%d\n", i+1, b, *((dist+(i+1)*graph->V) + b));
-	/* printf ("TEST %p %p\n", Q->nodes[0], graph->adjlists[Q->nodes[0]->v_id].nd); */
+	pp_graph (graph);
 	printf ("dijkstra cluster with w:%d\n", w->v_id);
-	/* for (int a = 0; a < (int)graph->V; a++) { */
-	/* 	printf ("%p %p\n", graph->adjlists[a].nd, Q->nodes[graph->adjlists[a].nd->index]); */
-	/* } */
+	for (int a = 0; a < (int)graph->V && pivot_nodes != 0; a++) {
+		printf ("test %d %d\n", pivot_nodes[a].v_id, pivot_nodes[a].sp_est);
+		/* printf ("%p %p\n", graph->adjlists[a].nd, Q->nodes[graph->adjlists[a].nd->index]); */
+	}
 	#endif
 
 	while (Q->heap_size != 0) {
 		pp_heap (Q);
 		struct node *u = extract_min (Q);
 		memcpy (&S[idx], u, sizeof (struct node));
-		for (struct AdjListNode *s = graph->adjlists[u->v_id].head;
+		for (struct adjlistnode *s = graph->adjlists[u->v_id].head;
 			 s != NULL; s = s->next) {
 			struct node *v = graph->adjlists[s->v_id].nd;
 			#ifdef DEBUG
-			printf("%d < dist[%d][%d]:%d\n", (u->sp_est + s->weight), i+1, s->v_id, *((dist+(i+1)*graph->V) + s->v_id));
+			if (pivot_nodes != 0) {
+				printf ("u is:%d, %d\n", s->weight, u->sp_est);
+				printf ("%d < dist[%d][%d]: %d\n", (u->sp_est + s->weight), i+1, s->v_id,
+						pivot_nodes[s->v_id].sp_est);
+			}
 			#endif
-			// relax the edge (u,v) only if u.d + l(u,v) < d(A_{i+1}, v)
-			if ((v != NULL) &&
-				(u->sp_est + s->weight) < *((dist+(i+1)*graph->V) + v->v_id)) {
-				// above is equivalent to dist[i+1][v->v_id]
+			// relax the edge (u,v) only if u.d + l(u,v) < d(A_{i+1}, v),
+			// where d(A_{i+1}, v) = d(p_{i+1}(v), v)
+			// that is, if w is strictly closer to v than all the vertices of A_i+1
+			if ((pivot_nodes != 0) && (v != NULL) &&
+				(u->sp_est + s->weight) < pivot_nodes[s->v_id].sp_est) {
+				printf ("hit!\n");
 				int sp_est = u->sp_est + s->weight;
-				#ifdef DEBUG
-				/* for (int a = 0; a < (int)graph->V; a++) */
-				/* 	printf ("hp: %d\n", graph->adjlists[a].nd->v_id); */
-				#endif
-				decrease_key (Q, v, u, sp_est);
+				min_heap_insert (Q, v->v_id,
+								 sp_est, graph);
+				no_nodes += 1;
 			}
 		}
+		// avoiding node u can be relaxed in next iterations
 		graph->adjlists[u->v_id].nd = NULL;
 		idx += 1;
 	}
-	printf ("dijkstra end\n");
-	pp_nodes (S, graph->V);
+	printf ("dijkstra end %d\n", no_nodes);
+	cluster->w = w;
+	cluster->cluster = S;
+	cluster->no_nodes = no_nodes;
 
-	return S;
+	#ifdef DEBUG
+	pp_nodes (S, no_nodes);
+	#endif
+
+	return cluster;
 }
 
 // the cluster C(w) of an i-center w ∈ A_i − A_i+1 contains all vertices whose distance to w is smaller than their distance to all (i + 1)-centers, dvs. C(w) = {v in V | d(w, v) < d(A_i+1, v)}
 // Note that for every w ∈ A_k−1 we have C(w) = V, as δ(A_k, v) = ∞, for every v ∈ V
 // TODO: Hvorfor ( C(w) = V, hvis w \in A_k-1, fordi A_k = infinity? )
-// TODO: Er antagelsen om max nummer af knuder i A_i korrekt?
+// TODO: Er antagelsen om max nummer af knuder i A_i korrekt? (seqsizes[i])
 // TODO: Hvad nu hvis i+1 mængden er tom? Skal man så bare køre dijsktra ud fra den knude man er på
-struct node **construct_clusters (struct Graph *graph, struct node **A,
-								  struct heap_t *heap, int seqsizes[],
-								  int *dist, int i, int k)
+struct cluster_list *construct_clusters (struct graph *graph, struct node **A, int seqsizes[],
+								  struct node *pivot_nodes, int i, int k)
 {
-	struct cluster_data *C = malloc (sizeof (struct cluster_data));
+	struct cluster_list *C = malloc (sizeof (struct cluster_list));
 	// max no of clusters is the number of vertices in A_i
-	struct node **clusters = malloc (seqsizes[i] * sizeof (struct node*));
-	C->clusters = clusters;
-	int no_clusters = 0;
+	struct cluster *clusters = malloc (sizeof (struct node));
 	bool to_cluster = true;
+	int no_clusters = 0;
 
 	// For every w in A_i - A_i+1
 	for (int w = 0; w < seqsizes[i]; w++) {
 		// for every w ∈ A_k−1 we have C(w) = V
 		if (i == (k-1)) {
-			clusters[w] = malloc (graph->V * sizeof (struct node));
-			memcpy (&clusters[w], &A[0], sizeof (struct node*));
+			struct cluster *cw = malloc (sizeof (struct cluster));
+			cw->cluster = malloc (graph->V * sizeof (struct node));
+			memcpy (&cw->cluster, &A[0], sizeof (struct node*));
+			cw->no_nodes = graph->V;
+			cw->w = &A[0][w];
+			memcpy (&clusters[no_clusters], cw, sizeof (struct cluster));
+			no_clusters += 1;
 		}
 		else {
-			clusters[no_clusters] = malloc (graph->V * sizeof(struct node));
-			// w in A_i - A_i+1
+			// check if w in A_i - A_i+1
 			for (int j = 0; j < seqsizes[i+1]; j++) {
 				if (A[i][w].v_id == A[i+1][j].v_id) {
 					to_cluster = false;
 				}
 			}
-			// if indeed w in A_i - A_i+1, go on with dijkstra
+			// if indeed w in A_i - A_i+1, go on with dijkstra to create a cluster
 			if (to_cluster) {
-				struct heap_t *new_heap = copy_heap_struct (heap);
-				struct Graph *write_graph = copy_graph_struct (graph, new_heap);
 				// create cluster C(w)
-				struct node *tmp = dijkstra_cluster_tz (write_graph, new_heap,
-														&A[i][w], dist, i);
-				memcpy (&clusters[no_clusters], &tmp, sizeof (struct node*));
+				struct cluster *cw = dijkstra_cluster_tz (graph, &A[i][w],
+														  pivot_nodes, i);
+				memcpy (&clusters[no_clusters], cw, sizeof (struct cluster));
 				no_clusters += 1;
 			}
 			to_cluster = true;
 		}
 	}
+
+	C->no_clusters = no_clusters;
+	C->clusters = clusters;
+
 	#ifdef DEBUG
 	if (to_cluster) {
 		printf ("debug in clusters for i:%d\n", i);
-		for (int j = 0; (j < seqsizes[i] && j < no_clusters) ||
+		for (int j = 0; (j < seqsizes[i] && j < C->no_clusters) ||
 				 (i == (k-1) && j < seqsizes[i]); j++)
-			pp_nodes (clusters[j], graph->V);
+			pp_nodes (clusters[j].cluster, clusters[j].no_nodes);
 		printf ("done debug in clusters\n");
 	}
 	#endif
 
-	return clusters;
+	return C;
 }
 
-// Find p_i(v) til v i A_i samt afstanden d(v,A_i) fra v til p_i(v)
-// TODO: Christian - vil det være rigtigt?
-// TODO: Christian går (*) ud på at det skal være ==, eller <=, i beviset står noget med at hvis (*) fejler så er p_i (v) = p_i+1, men hos mig er det omvendt? Hvornår fejler (*) så?
-// TODO: Vil der er i A_i, v , i=0 overhovedet være pivot elementer? Da A_0 = V, og (s, v) = 0, gælder for alle
-// TODO: Kan pivot elementerne også være dem der har vægt 0?
-struct node* find_pivot (struct node* ai, struct node* aiplusone, unsigned int len)
-{
-	struct node* piv = malloc (sizeof (struct node));
-	// indicates piv is empty / not found yet
-	int piv_id = -1;
-	for (unsigned int i = 0; i < len; i++) {
-		if ((piv_id == -1 || ai[i].sp_est <= piv->sp_est)
-			&& ai[i].sp_est > 0) {
-			memcpy (piv, &ai[i], sizeof(ai[i]));
-			piv_id = ai[i].v_id;
-			// asterisk statement, hvis (A_i, v) == (A_i+1,v), copy!
-			if (aiplusone != NULL && aiplusone[i].sp_est == piv->sp_est) {
-				memcpy (piv, &aiplusone[i], sizeof (aiplusone[i]));
-				piv_id = aiplusone[i].v_id;
-			}
-		}
-	}
-
-	#ifdef DEBUG
-	if (piv->pi != NULL)
-		printf ("pivot found: %d %d %d\n", piv_id, piv->sp_est, piv->pi->v_id);
-	#endif
-	return piv;
-}
-
-/* When a pointer is passed to a function, it is passed by value. If we want to modify the */
-/* original pointer and not the copy of the pointer, we need to pass it as a pointer to a */
-/* pointer. */
-
-// TODO: Change to adjlist eller spørg Christian om det er ok.
-// TODO: Skal knude s beholdes i heap (til clustering)? Derfor heap size +- 1. Også til clustering?
-// TODO: Spørgs christian om jeg skal bruge dist (integers) i stedet for res (knuder)
 // Should have at most time complexity O(kn^{1+1/k})
-void prepro (struct Graph *graph, int k)
+void prepro (struct graph *graph, int k)
 {
-	// array of k pointers
+	// array of k pointers to struct node
 	struct node *A[k];
-	struct heap_t *heap = initialise_single_source_tz (graph);
-	// k+1, for the kth set where d(A_k, v) = infinity for all v in V
-	struct node *res[(k+1) * graph->V];
-	int dist[k+1][graph->V];
-	// For each v the pivot node to each i, thus v*k
-	struct node pivot_nodes[k * graph->V];
-	struct node tmp_arr[graph->V];
+	struct node nodes[graph->V];
 	int seqsizes[k];
 
-	struct node **C = malloc (k * sizeof (struct node*));
-	assert (C != NULL);
+	// k+1, for the kth set where d(A_k, v) = infinity for all v in V
+	int dist[k+1][graph->V];
+	// For each v the pivot node to each i, thus v*k
+	struct node *pivot_nodes[k];
+	struct node *pivot_arr;
+	struct node tmp_arr[graph->V];
+	struct heap *heap;
+	struct cluster_list *C[k];
 
-	for (unsigned int l = 0; l < ((k+1) * graph->V); l++) {
-		res[l] = malloc (graph->V * sizeof(struct node));
+	// saving all v in V in array nodes
+	for (unsigned int i = 0; i < graph->V; i++) {
+		int val = (int) INFINITY;
+		memcpy (&nodes[i], add_node (i, val, i), sizeof (struct node));
 	}
 
 	// A_k <- Ø
@@ -215,10 +254,10 @@ void prepro (struct Graph *graph, int k)
 
 	// A_0 <- V. Running time O(n)
 	for (unsigned int i = 0; i < graph->V; i++) {
-		memcpy (&A[0][i], heap->nodes[i], sizeof(struct node));
+		memcpy (&A[0][i], &nodes[i], sizeof(struct node));
 	}
 
-	seqsizes[0] = heap->heap_size;
+	seqsizes[0] = graph->V;
 	// Set the seed
 	srand((unsigned)time(NULL));
 
@@ -243,6 +282,8 @@ void prepro (struct Graph *graph, int k)
 	#ifdef DEBUG
 	print_seqs (A, k, seqsizes);
 	#endif
+	// initialising the heap
+	heap = initialise_single_source_tz (graph);
 
 	// d(A_k, v) = infinity
 	for (unsigned int v = 0; v < graph->V; v++) {
@@ -253,59 +294,58 @@ void prepro (struct Graph *graph, int k)
 	for (int i = k-1; i >= 0; i--) {
 
 		if (seqsizes[i] == 0) {
+			// Empty set, thus d(A_i, v) = infinity
+			for (unsigned int v = 0; v < graph->V; v++) {
+				dist[i][v] = (int) INFINITY;
+			}
+			memset(&pivot_nodes[i], 0, sizeof(pivot_nodes[i]));
 			continue;
 		}
 		// copy of heap to work with for current i
-		struct heap_t *write_heap = copy_heap_struct (heap);
+		struct heap *write_heap = copy_heap_struct (heap);
 		// copy of graph to work with for current i
-		struct Graph *write_graph = copy_graph_struct (graph, write_heap);
+		struct graph *write_graph = copy_graph_struct (graph, write_heap);
 		// adding source vertex s to G, weight 0 to all other vertices in A_i
 		add_s_node_to_graph (write_graph, A[i], seqsizes[i]);
 		// adding s to heap as well to allow computing sp
-		struct node *tmp = add_heap_node (write_graph->V, 0);
-		write_heap->nodes[write_heap->heap_size] = tmp;
-		write_graph->adjlists[write_graph->V].nd = tmp;
-		write_heap->heap_size += 1;
+		min_heap_insert (write_heap, write_graph->V, 0, write_graph);
 		write_graph->V += 1;
-		int u = write_heap->nodes[write_heap->heap_size-1]->index;
-		fix_positions (write_heap, u);
 
 		// compute d(A_i, v), running dijkstra once for each i
 		struct node *sps = dijkstra_alg_tz (write_graph, write_heap);
-		memcpy (&res[i], &sps, sizeof (struct node*));
 		#ifdef DEBUG
-		printf ("prepro dijkstra res for i=%d:\n", i);
-		pp_nodes (res[i], graph->V+1);
+		pp_graph (write_graph);
+		printf ("prepro dijkstra result for i=%d:\n", i);
+		pp_nodes (sps, graph->V+1);
 		#endif
 		// for every v in V
 		for (unsigned int v = 0; v < write_graph->V; v++) {
+			// Excluding the node s
 			if (sps[v].v_id != (int) (write_graph->V-1)) {
-				/* printf ("dist[%d][%d]=%d\n", i, sps[v].v_id, sps[v].sp_est); */
 				dist[i][sps[v].v_id] = sps[v].sp_est;
 			}
 		}
-		if (i != k-1) {
-			struct node *tmp = find_pivot (res[i], &pivot_nodes[i+1], graph->V+1);
-			memcpy (&pivot_nodes[i], &tmp, sizeof (struct node));
-		} else {
-			struct node *tmp = find_pivot (res[i], NULL, graph->V+1);
-			memcpy (&pivot_nodes[i], &tmp, sizeof (struct node));
-		}
-
-		C[i] = (construct_clusters (graph, A, heap, seqsizes, &dist[0][0], i, k))[0];
-
+		// No use of write heap and graph anymore
 		free (write_heap);
 		free (write_graph);
+		// Finding the pivot elements, note p_k(v) undefined as A_k = Ø
+		if (i != k-1) {
+			pivot_arr = find_pivot (A[i], pivot_nodes[i+1], sps, graph->V, seqsizes[i], dist[i]);
+		} else {
+			pivot_arr = find_pivot (A[i], NULL, sps, graph->V, seqsizes[i], dist[i]);
+		}
+		memcpy (&pivot_nodes[i], &pivot_arr, sizeof (struct node*));
+		C[i] = construct_clusters (graph, A, seqsizes, pivot_nodes[i+1], i, k);
+		for (int a = 0; a < C[i]->no_clusters; a++)
+			printf ("cluster id:%d\n", C[i]->clusters[a].w->v_id);
 	}
-
-	for (int p = 0; p < k; p++) {
-		for (int a = 0; a < (int) graph->V; a++)
-			printf ("%d\n", C[p][a].v_id);
-		printf ("\n");
-	}
-		
-
+	// TODO: Læs om hash funktionen af uthash
 	// TODO: for every v in V, generate bunches B(v) from all C(w)
+	// needs to be a tuple (w, cluster), where w is the key
+	// Checks whether w in B(v) and retrieves d(w, v)
+	// TODO: Skal det være en 2-level table med den foreslående hash funktion?
+	// TODO: Husk også at gemme afstanden i Bunches
+	// u in C(w) if and only if w in B(u)
 
 	printf ("***** prepro done ******\n");
 	return;
@@ -315,7 +355,7 @@ void prepro (struct Graph *graph, int k)
 void hardcoded_tests ()
 {
 	// From the author
-	struct Graph* graph_1 = init_graph (5);
+	struct graph* graph_1 = init_graph (5);
 	add_edges (graph_1, 0, 1, 3);
 	add_edges (graph_1, 0, 2, 5);
 	add_edges (graph_1, 1, 2, 1);
@@ -327,7 +367,7 @@ void hardcoded_tests ()
 
 	printf ("------------------------\n");
 	// From: http://www.geeksforgeeks.org/greedy-algorithms-set-7-dijkstras-algorithm-for-adjacency-list-representation/
-	struct Graph* graph = init_graph (9);
+	struct graph* graph = init_graph (9);
 	add_edges(graph, 0, 1, 4);
 	add_edges(graph, 0, 7, 8);
 	add_edges(graph, 1, 2, 8);
@@ -348,7 +388,7 @@ void hardcoded_tests ()
 
 	printf ("------------------------\n");
 	// From CLRS p. 659 (though it is directed)
-	struct Graph* graph_3 = init_graph (5);
+	struct graph* graph_3 = init_graph (5);
 	add_edges (graph_3, 0, 1, 10);
 	add_edges (graph_3, 0, 2, 5);
 	add_edges (graph_3, 0, 4, 7);
@@ -364,7 +404,7 @@ void hardcoded_tests ()
 
 void test_prepro ()
 {
-	struct Graph* graph_3 = init_graph (5);
+	struct graph* graph_3 = init_graph (5);
 	add_edges (graph_3, 0, 1, 10);
 	add_edges (graph_3, 0, 2, 5);
 	add_edges (graph_3, 0, 4, 7);
@@ -380,7 +420,7 @@ void test_prepro ()
 void run (const char *fname_read, const char *fname_write)
 {
 	int V = count_vertices (fname_read);
-	struct Graph *graph = init_graph (V);
+	struct graph *graph = init_graph (V);
 	read_from_file (graph, fname_read);
 	struct node *S = dijkstra_alg (graph, 1);
 	write_to_csv (fname_write, S, V);

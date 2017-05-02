@@ -137,7 +137,7 @@ void min_heap_insert (struct heap *heap, int id,
 	graph->adjlists[id].nd = heap->nodes[heap->heap_size];
 	heap->heap_size += 1;
 	int index = heap->nodes[heap->heap_size-1]->index;
-	// Updating the position of the node in the heap
+	// Updating the position of the node in the heap. O(lg n)
 	find_node_pos (heap, index);
 	return;
 }

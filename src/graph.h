@@ -10,7 +10,6 @@ void pp_nodes (struct node *S, int i);
 void pp_graph (struct graph* graph);
 struct node *dijkstra_alg (struct graph *graph, int s);
 struct node *dijkstra_alg_tz (struct graph *graph, struct heap *Q);
-void add_s_node_to_graph (struct graph *graph, struct node *ai, int ailen);
 struct heap *initialise_single_source (struct graph *graph, int s);
 struct adjlistnode *add_adj_node (int v, int weight);
 void add_edges (struct graph *graph, int u, int v, unsigned int w);

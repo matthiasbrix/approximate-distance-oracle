@@ -53,6 +53,7 @@ struct adjlistnode {
 };
 
 struct adjlist {
+  int extracted;
   struct node* nd;
   struct adjlistnode* head; // start of list
 };

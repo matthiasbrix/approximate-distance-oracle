@@ -49,6 +49,7 @@ struct graph *copy_graph_struct (struct graph *old_graph, struct heap *heap)
 	return new_graph;
 }
 
+// O(n)
 struct heap* initialise_single_source_tz (struct graph *graph)
 {
 	struct heap *heap = malloc (sizeof (struct heap));
@@ -65,6 +66,7 @@ struct heap* initialise_single_source_tz (struct graph *graph)
 	for (unsigned int i = 0; i < graph->V; i++) {
 		struct node *tmp = add_node (i, val, i);
 		heap->nodes[i] = tmp;
+		// TODO: MAYBE NOT NECCESSARY?
 		memcpy (&graph->adjlists[i].nd, &heap->nodes[i], sizeof (struct node*));
 	}
 
@@ -141,18 +143,11 @@ struct node *dijkstra_alg_tz (struct graph *graph, struct heap *Q)
 				decrease_key (Q, v, u, sp_est);
 			}
 		}
+		// TODO:
+		// graph->adjlists[u->v_id].nd = NULL;
 		i += 1;
 	}
 	return S;
-}
-
-void add_s_node_to_graph (struct graph *graph, struct node *ai, int ailen)
-{
-	// The added node s will always have the vertex id of the no. of vertices
-	for (int i = 0; i < ailen; i++) {
-		add_edges (graph, graph->V, ai[i].v_id, 0);
-	}
-	return;
 }
 
 void pp_graph (struct graph* graph)

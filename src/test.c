@@ -37,9 +37,12 @@ int main () {
 	/* test2->a = 5; */
 	/* printf ("ipp:%d ip:%d\n", **ipp, *ip1); */
 	/* printf ("test.a:%d, test2.a:%d\n", test->a, test2->a); */
-	int *vector = NULL;
-	allocateArray(&vector,5,45);
-	printf("%d\n", vector[1]);
+	/* int *vector = NULL; */
+	/* allocateArray(&vector,5,45); */
+	/* printf("%d\n", vector[1]); */
+
+	int test[10];
+	printf ("out: %d %d %d\n", test[0], test[3], test[6]);
 
 	return 0;
 }

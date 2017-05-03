@@ -4,21 +4,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "uthash.h"
 
 #define HEAP_UNDERFLOW (-1)
 #define KEY_SIZE (-2)
-
-#define ARRSIZE(arr) (sizeof(arr) / sizeof(arr[0])
-// TODO Remove the above?
 
 #define FREE(x) free(x); x = NULL;
 #define MULTBY2(x) (x << 1)
 #define LCHILD(x) MULTBY2(x) + 1
 #define RCHILD(x) MULTBY2(x) + 2
 #define PARENT(x) (x - 1) / 2
-
-extern struct node *hash_heap;
 
 /**
  * TODO: HOW TO COMMENT
@@ -37,7 +31,6 @@ struct node {
   int sp_est;
   int index;
   struct node *pi; // predecessor
-  UT_hash_handle hh; /* makes this structure hashable */
 };
 
 struct heap {
@@ -53,7 +46,6 @@ struct adjlistnode {
 };
 
 struct adjlist {
-  int extracted;
   struct node* nd;
   struct adjlistnode* head; // start of list
 };

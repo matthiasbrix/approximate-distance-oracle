@@ -2,8 +2,6 @@
 
 // Use a heap to implement a priority queue, need handle in each heap element. Handle is index in heap array
 
-struct node *hash_heap = NULL;
-
 // A utility function to create a new min heap node
 struct node *add_node (int id, int distance, int index)
 {

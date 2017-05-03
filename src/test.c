@@ -1,48 +1,39 @@
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <math.h>
+#include <stdio.h>
+#include "uthash.h"
 
-struct Test {
-	int a;
-};
+typedef struct {
+  char a;
+  int b;
+} record_key_t;
 
-void allocateArray(int **arr, int size, int value) {
-	*arr = (int*)malloc(size * sizeof(int));
-	if(arr != NULL) {
-		for(int i=0; i<size; i++) {
-			*(*arr+i) = value;
-		}
+typedef struct {
+	record_key_t key;
+	/* ... other data ... */
+	UT_hash_handle hh;
+} record_t;
+
+int main(int argc, char *argv[]) {
+	argc = argc;
+	argv = argv;
+	record_t l, *p, *r, *tmp, *records = NULL;
+
+	r = (record_t*)malloc( sizeof(record_t) );
+	memset(r, 0, sizeof(record_t));
+	r->key.a = 'a';
+	r->key.b = 1;
+	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+
+	memset(&l, 0, sizeof(record_t));
+	l.key.a = 'a';
+	l.key.b = 1;
+	HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
+
+	if (p) printf("found %c %d\n", p->key.a, p->key.b);
+
+	HASH_ITER(hh, records, p, tmp) {
+	  HASH_DEL(records, p);
+	  free(p);
 	}
-}
-
-int main () {
-
-	/* int **ipp; */
-	/* int i = 5, j = 6; */
-	/* int *ip1 = &i; */
-	/* int *ip2 = &j; */
-
-	/* struct Test* test = malloc (sizeof (struct Test)); */
-	/* test->a = 3; */
-
-	/* struct Test* test2 = malloc (sizeof (struct Test)); */
-	/* test2 = test; */
-
-	/* ip1 = ip2; */
-	/* ipp = &ip1; */
-	/* // ipp -> ip1 -> ip2 -> j=6 */
-	/* j = 7; */
-	/* test2->a = 5; */
-	/* printf ("ipp:%d ip:%d\n", **ipp, *ip1); */
-	/* printf ("test.a:%d, test2.a:%d\n", test->a, test2->a); */
-	/* int *vector = NULL; */
-	/* allocateArray(&vector,5,45); */
-	/* printf("%d\n", vector[1]); */
-
-	int test[10];
-	printf ("out: %d %d %d\n", test[0], test[3], test[6]);
-
 	return 0;
 }

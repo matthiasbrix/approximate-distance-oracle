@@ -4,6 +4,8 @@
 
 #define DEBUG
 
+struct bunch *hash_bunch = NULL;
+
 void add_s_node_to_graph (struct graph *graph, struct aseq *ai)
 {
 	// The added node s will always have the vertex id of the no. of vertices
@@ -19,11 +21,16 @@ void free_heap (struct heap *heap)
 		free (heap->nodes[i]);
 	free (heap);
 }
+
 void free_graph (struct graph *graph)
 {
 	free (graph->adjlists->head);
-	free (graph->adjlists);
+	graph->adjlists->head = NULL;
+	for (int i = 0; i < (int) graph->V; i++)
+		free (&graph->adjlists[i]);
+	graph->adjlists = NULL;
 	free (graph);
+	graph = NULL;
 }
 
 void print_seqs (struct aseq **A, int k)
@@ -180,6 +187,28 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
 	return cluster;
 }
 
+/* int dist (struct node *u, struct node *v, int k, struct bunch *bunches) */
+/* { */
+/* 	struct node	*w = malloc (sizeof (struct node)); */
+/* 	int i; */
+
+/* 	memcpy (&w, &u, sizeof (u)); */
+/* 	i = 0; */
+
+/* 	while (w != B(v)) { */
+/* 		// i <- i + 1 */
+/* 		i += i + 1; */
+/* 		// (u, v) <- (v, u) */
+/* 		struct node *tmp = malloc (sizeof (struct node)); */
+/* 		memcpy (&tmp, &u, sizeof (struct node)); */
+/* 		memcpy (&u, &v, sizeof (v)); */
+/* 		memcpy (&v, &tmp, sizeof (tmp)); */
+/* 		memcpy (&w, &bunches[]) */
+/* 	} */
+
+/* 	return u->sp_est + v->sp_est; */
+/* } */
+
 // the cluster C(w) of an i-center w ∈ A_i − A_i+1 contains all vertices whose distance to w is smaller than their distance to all (i + 1)-centers, dvs. C(w) = {v in V | d(w, v) < d(A_i+1, v)}
 // Note that for every w ∈ A_k−1 we have C(w) = V, as δ(A_k, v) = ∞, for every v ∈ V
 // TODO: Hvorfor ( C(w) = V, hvis w \in A_k-1, fordi A_k = infinity? ), dvs. afstanden beregnes fra w til alle knuder?
@@ -189,8 +218,7 @@ struct clusterlist *construct_clusters (struct graph *graph, struct aseq **A,
 								  struct node *pivot_nodes, int i, int k)
 {
 	struct clusterlist *C = malloc (sizeof (struct clusterlist));
-	// TODO: max no of clusters is the number of vertices in A_i
-	struct cluster *clusters = malloc (sizeof (struct node));
+	struct cluster *clusters = malloc (A[i]->seqsize * sizeof (struct node));
 	bool to_cluster = true;
 	int no_clusters = 0;
 
@@ -198,8 +226,9 @@ struct clusterlist *construct_clusters (struct graph *graph, struct aseq **A,
 	for (int w = 0; w < A[i]->seqsize; w++) {
 		// for every w ∈ A_k−1 we have C(w) = V
 		if (i == (k-1)) {
+			pp_graph (graph);
 			// create cluster C(w) = V, computing the distances from w to all other v in V
-			struct cluster *cw = dijkstra_cluster_tz (graph, &A[i]->nodes[w], //
+			struct cluster *cw = dijkstra_cluster_tz (graph, &A[i]->nodes[w],
 													  NULL, k, i);
 			memcpy (&clusters[no_clusters], cw, sizeof (struct cluster));
 			no_clusters += 1;
@@ -245,15 +274,16 @@ void prepro (struct graph *graph, int k)
 {
 	struct node nodes[graph->V];
 	int seqsizes[k];
+	struct node tmp_arr[graph->V];
 	// k+1, for the kth set where d(A_k, v) = infinity for all v in V
 	int dist[k+1][graph->V];
 	// For each v the pivot node to each i, thus v*k
 	struct node *pivot_nodes[k];
 	struct node *pivot_arr;
-	struct node tmp_arr[graph->V];
 	struct aseq **A = malloc (k * sizeof (struct aeseqs*));
 	struct heap *heap;
 	struct clusterlist *C[k];
+	struct bunch *bunches = malloc (graph->V * sizeof (struct bunch));
 
 	int val = (int) INFINITY;
 	// saving all v in V in array nodes
@@ -344,7 +374,7 @@ void prepro (struct graph *graph, int k)
 		}
 		// No use of write heap and graph anymore
 		free_heap (write_heap);
-		free_graph (write_graph);
+		free (write_graph);
 		// Finding the pivot elements, note p_k(v) undefined as A_k = Ø (as in the else case)
 		if (i != k-1) {
 			pivot_arr = find_pivot (A[i], pivot_nodes[i+1], sps, graph->V, dist[i]);
@@ -359,6 +389,23 @@ void prepro (struct graph *graph, int k)
 			for (int b = 0; b < C[i]->clusters[a].no_nodes; b++)
 				printf ("cluster nodes for C(%d)=%d\n", C[i]->clusters[a].w->v_id, C[i]->clusters[a].cluster[b].v_id);
 		#endif
+	}
+
+	// TODO:
+	for (unsigned int a = 0; a < graph->V; a++) {
+		struct bunch *test = NULL;
+		struct bunch *b = malloc (sizeof (struct bunch));
+		memset (b, 0, sizeof (struct bunch));
+		// hashhandle, test the struct to work with, v of bunch is key, sizeof(v), b temp struct
+		HASH_ADD (hh, test, v, sizeof(b->v), b);
+		test->piv = malloc (k * sizeof (struct node));
+		for (int i = 0; i < k; i ++) {
+			/* struct node *cluster = C[i]->clusters[a].cluster; */
+			/* if (C[i]->clusters[a].w->v_id == test->v->v_id) */
+			memcpy (&test->piv[i], &pivot_nodes[i][nodes[a].v_id], sizeof (pivot_nodes[i][nodes[a].v_id]));
+		}
+		printf ("hej\n");
+		memcpy (&bunches[a], test, sizeof(&test));
 	}
 	// zero level: B(v) for v in V.
 	/*

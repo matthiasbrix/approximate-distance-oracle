@@ -5,6 +5,8 @@
 #include "filehandling.h"
 #include "uthash.h"
 
+// TODO: Have all pointer be with the variable name
+
 extern struct bunch *hash_bunch;
 
 struct aseq {
@@ -25,10 +27,17 @@ struct clusterlist {
 };
 
 struct bunch {
-  struct bunch *bunch;
+  //struct bunch *bunch;
   struct node *v;
   struct node *piv; // witnesses p_i(v) and distances d(p_i(v), v) = d(A_i. v)
+  struct node *nodes;
+  int no_nodes;
   UT_hash_handle hh; /* makes this structure hashable */
+};
+
+struct bunchlist {
+  int no_bunches;
+  struct bunch *bunches;
 };
 
 #endif

@@ -4,16 +4,10 @@
 
 #define DEBUG
 
-struct bunch *hash_bunch = NULL;
+// TODO: en fil til preprocessing
+// TODO: en fil til query og main
 
-void add_s_node_to_graph (struct graph *graph, struct aseq *ai)
-{
-	// The added node s will always have the vertex id of the no. of vertices
-	for (int i = 0; i < ai->seqsize; i++) {
-		add_edges (graph, graph->V, ai->nodes[i].v_id, 0);
-	}
-	return;
-}
+struct bunch *hash_bunch = NULL;
 
 void free_heap (struct heap *heap)
 {
@@ -33,9 +27,9 @@ void free_graph (struct graph *graph)
 	graph = NULL;
 }
 
-void print_seqs (struct aseq **A, int k)
+void pp_aseqs (struct aseq **A, int k)
 {
-	printf("Print out all A_i sequences\n");
+	printf("Pretty print all A_i sequences\n");
 	for (int i = 0; i < k; i++) {
 		if (A[i]->seqsize > 0) {
 			for (int j = 0; j < A[i]->seqsize; j++)
@@ -43,7 +37,62 @@ void print_seqs (struct aseq **A, int k)
 						A[i]->nodes[j].v_id, A[i]->nodes[j].sp_est);
 		}
 	}
+
+	return;
 }
+
+void pp_clusters (struct clusterlist **C, int i)
+{
+	printf("Pretty print all clusters\n");
+	for (int a = 0; a < C[i]->no_clusters; a++)
+		for (int b = 0; b < C[i]->clusters[a].no_nodes; b++)
+			printf ("cluster nodes for C(w:%d)=%d\n", C[i]->clusters[a].w->v_id, C[i]->clusters[a].cluster[b].v_id);
+
+	return;
+}
+
+// TODO: Change to HASH_ITER, not inner loop
+void pp_bunches (struct bunch *bunches, unsigned int no_bunches)
+{
+	printf("Pretty print all bunches\n");
+	for (unsigned int i = 0; i < no_bunches; i++) {
+		for (int j = 0; j < bunches[i].no_nodes; j++) {
+			printf ("B(v:%d)=%d\n", bunches[i].v->v_id, bunches[i].nodes[j].v_id);
+		}
+	}
+	return;
+}
+
+void add_s_node_to_graph (struct graph *graph, struct aseq *ai)
+{
+	// The added node s will always have the vertex id of the no. of vertices
+	for (int i = 0; i < ai->seqsize; i++) {
+		add_edges (graph, graph->V, ai->nodes[i].v_id, 0);
+	}
+	return;
+}
+
+/* int dist (struct node *u, struct node *v, int k, struct bunch *bunches) */
+/* { */
+/* 	struct node	*w = malloc (sizeof (struct node)); */
+/* 	int i; */
+
+/* 	memcpy (&w, &u, sizeof (u)); */
+/* 	i = 0; */
+
+/* 	while (w != B(v)) { */
+/* 		// i <- i + 1 */
+/* 		i += i + 1; */
+/* 		// (u, v) <- (v, u) */
+/* 		struct node *tmp = malloc (sizeof (struct node)); */
+/* 		memcpy (&tmp, &u, sizeof (struct node)); */
+/* 		memcpy (&u, &v, sizeof (v)); */
+/* 		memcpy (&v, &tmp, sizeof (tmp)); */
+/* 		memcpy (&w, &bunches[]) */
+/* 	} */
+
+/* 	return u->sp_est + v->sp_est; */
+/* } */
 
 // We find p_i(v) to v in A_i as well as the distance d(v, A_i) from v to p_i(v). Note, p_i(v) in A_i and it is nearest to v which means d(p_i(v), v) = d(A_i, v). Note that as A_0 = V, d(A_0, v) = 0 and p_0(v) = v, which applies for all v in V
 // Also, if A_i == NULL, we have no pivot nodes p_i(v) for i
@@ -187,28 +236,6 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
 	return cluster;
 }
 
-/* int dist (struct node *u, struct node *v, int k, struct bunch *bunches) */
-/* { */
-/* 	struct node	*w = malloc (sizeof (struct node)); */
-/* 	int i; */
-
-/* 	memcpy (&w, &u, sizeof (u)); */
-/* 	i = 0; */
-
-/* 	while (w != B(v)) { */
-/* 		// i <- i + 1 */
-/* 		i += i + 1; */
-/* 		// (u, v) <- (v, u) */
-/* 		struct node *tmp = malloc (sizeof (struct node)); */
-/* 		memcpy (&tmp, &u, sizeof (struct node)); */
-/* 		memcpy (&u, &v, sizeof (v)); */
-/* 		memcpy (&v, &tmp, sizeof (tmp)); */
-/* 		memcpy (&w, &bunches[]) */
-/* 	} */
-
-/* 	return u->sp_est + v->sp_est; */
-/* } */
-
 // the cluster C(w) of an i-center w ∈ A_i − A_i+1 contains all vertices whose distance to w is smaller than their distance to all (i + 1)-centers, dvs. C(w) = {v in V | d(w, v) < d(A_i+1, v)}
 // Note that for every w ∈ A_k−1 we have C(w) = V, as δ(A_k, v) = ∞, for every v ∈ V
 // TODO: Hvorfor ( C(w) = V, hvis w \in A_k-1, fordi A_k = infinity? ), dvs. afstanden beregnes fra w til alle knuder?
@@ -268,29 +295,10 @@ struct clusterlist *construct_clusters (struct graph *graph, struct aseq **A,
 	return C;
 }
 
-// TODO: Skal jeg droppe dist og bare gemme efter S[u->v_id]?
-// Should have at most time complexity O(kn^{1+1/k})
-void prepro (struct graph *graph, int k)
+void create_aseqs (struct aseq **A, int k, struct graph *graph, struct node *nodes)
 {
-	struct node nodes[graph->V];
 	int seqsizes[k];
 	struct node tmp_arr[graph->V];
-	// k+1, for the kth set where d(A_k, v) = infinity for all v in V
-	int dist[k+1][graph->V];
-	// For each v the pivot node to each i, thus v*k
-	struct node *pivot_nodes[k];
-	struct node *pivot_arr;
-	struct aseq **A = malloc (k * sizeof (struct aeseqs*));
-	struct heap *heap;
-	struct clusterlist *C[k];
-	struct bunch *bunches = malloc (graph->V * sizeof (struct bunch));
-
-	int val = (int) INFINITY;
-	// saving all v in V in array nodes
-	for (unsigned int i = 0; i < graph->V; i++) {
-		memcpy (&nodes[i], add_node (i, val, i), sizeof (struct node));
-	}
-
 	// A_k <- Ø
 	A[k] = NULL;
 	// A_0 <- V. Running time O(n)
@@ -299,8 +307,8 @@ void prepro (struct graph *graph, int k)
 	for (unsigned int i = 0; i < graph->V; i++) {
 		memcpy (&A[0]->nodes[i], &nodes[i], sizeof(struct node));
 	}
-	A[0]->seqsize = graph->V;
 
+	A[0]->seqsize = graph->V;
 	seqsizes[0] = graph->V;
 	// Set the seed
 	srand((unsigned)time(NULL));
@@ -324,9 +332,35 @@ void prepro (struct graph *graph, int k)
 		}
 		A[i]->seqsize = seqsizes[i];
 	}
+}
+
+// TODO: Skal jeg droppe dist og bare gemme efter S[u->v_id]?
+// Should have at most time complexity O(kn^{1+1/k})
+void prepro (struct graph *graph, int k)
+{
+	struct node nodes[graph->V];
+	// k+1, for the kth set where d(A_k, v) = infinity for all v in V
+	int dist[k+1][graph->V];
+	// For each v the pivot node to each i, thus v*k
+	struct node *pivot_nodes[k];
+	struct node *pivot_arr;
+	struct aseq **A = malloc (k * sizeof (struct aeseqs*));
+	struct heap *heap;
+	struct clusterlist *C[k];
+	// TODO: return bunches?
+	struct bunch *bunches = malloc (graph->V * sizeof (struct bunch));
+
+	int val = (int) INFINITY;
+	// saving all v in V in array nodes
+	for (unsigned int i = 0; i < graph->V; i++) {
+		memcpy (&nodes[i], add_node (i, val, i), sizeof (struct node));
+	}
+
+	// Creating all A_i sequences
+	create_aseqs (A, k, graph, nodes);
 
 	#ifdef DEBUG
-	print_seqs (A, k);
+	pp_aseqs (A, k);
 	#endif
 	// initialising the heap
 	heap = initialise_single_source_tz (graph);
@@ -339,7 +373,7 @@ void prepro (struct graph *graph, int k)
 	// k iterations
 	for (int i = k-1; i >= 0; i--) {
 
-		if (seqsizes[i] == 0) {
+		if (A[i]->seqsize == 0) {
 			// Empty set, thus d(A_i, v) = infinity
 			for (unsigned int v = 0; v < graph->V; v++) {
 				dist[i][v] = (int) INFINITY;
@@ -356,7 +390,6 @@ void prepro (struct graph *graph, int k)
 		// adding s to heap as well to allow computing sp
 		min_heap_insert (write_heap, write_graph->V, 0, write_graph);
 		write_graph->V += 1;
-		pp_graph (write_graph);
 
 		// compute d(A_i, v), running dijkstra once for each i
 		struct node *sps = dijkstra_alg_tz (write_graph, write_heap);
@@ -385,28 +418,48 @@ void prepro (struct graph *graph, int k)
 		C[i] = construct_clusters (graph, A, pivot_nodes[i+1], i, k);
 
 		#ifdef DEBUG
-		for (int a = 0; a < C[i]->no_clusters; a++)
-			for (int b = 0; b < C[i]->clusters[a].no_nodes; b++)
-				printf ("cluster nodes for C(%d)=%d\n", C[i]->clusters[a].w->v_id, C[i]->clusters[a].cluster[b].v_id);
+		pp_clusters (C, i);
 		#endif
 	}
 
-	// TODO:
-	for (unsigned int a = 0; a < graph->V; a++) {
-		struct bunch *test = NULL;
+	bunches = bunches;
+	// Constructing bunches for all v, containing all w of all C(w) v belongs to
+	for (unsigned int j = 0; j < graph->V; j++) {
+		printf ("hej1\n");
+		struct bunch *bunch = NULL;
 		struct bunch *b = malloc (sizeof (struct bunch));
+		// mandatory to set b to 0 (according to uthash)
 		memset (b, 0, sizeof (struct bunch));
-		// hashhandle, test the struct to work with, v of bunch is key, sizeof(v), b temp struct
-		HASH_ADD (hh, test, v, sizeof(b->v), b);
-		test->piv = malloc (k * sizeof (struct node));
+		b->v = malloc (sizeof (struct node));
+		memcpy (b->v, &nodes[j], sizeof(struct node));
+		printf ("hej2\n");
+		// hashhandle, struct to work with, v of bunch is key, b is temp struct
+		HASH_ADD (hh, bunch, v, sizeof(b->v), b);
+		bunch->piv = malloc (k * sizeof (struct node));
+		// TODO: Use tmp array instead and then copy in the end (like for aseqs)
+		bunch->nodes = malloc (graph->V * sizeof (struct node));
+		printf ("hej3\n");
 		for (int i = 0; i < k; i ++) {
-			/* struct node *cluster = C[i]->clusters[a].cluster; */
-			/* if (C[i]->clusters[a].w->v_id == test->v->v_id) */
-			memcpy (&test->piv[i], &pivot_nodes[i][nodes[a].v_id], sizeof (pivot_nodes[i][nodes[a].v_id]));
+			memcpy (&bunch->piv[i], &pivot_nodes[i][nodes[j].v_id], sizeof (pivot_nodes[i][nodes[j].v_id]));
+			for (int c = 0; c < C[i]->no_clusters; c++) {
+				struct cluster *cluster = &C[i]->clusters[c];
+				for (int v = 0; v < cluster->no_nodes; v++) {
+					if (cluster->cluster[v].v_id == bunch->v->v_id) {
+						printf ("hej4\n");
+						memcpy (&bunch->nodes[bunch->no_nodes], &cluster->w, sizeof (struct node));
+						bunch->no_nodes += 1;
+					}
+				}
+			}
 		}
-		printf ("hej\n");
-		memcpy (&bunches[a], test, sizeof(&test));
+		printf ("test :%d\n", bunch->no_nodes);
+		memcpy (&bunches[j], bunch, sizeof(struct bunch));
+		printf ("test :%d\n", bunches[j].no_nodes);
 	}
+
+	pp_bunches (bunches, graph->V);
+	// Hash table for en knude v skal indeholde netop de knuder w, der tilhører B(v), og disse knuder w er netop dem, hvor v tilhører C(w).
+
 	// zero level: B(v) for v in V.
 	/*
 	  Finally, the algorithm constructs (2-level) hash tables for the bunches B(v), for
@@ -418,7 +471,6 @@ void prepro (struct graph *graph, int k)
 	// http://eternallyconfuzzled.com/tuts/algorithms/jsw_tut_hashing.aspx
 	// TODO: Læs om hash funktionen af uthash
 	// TODO: for every v in V, generate bunches B(v) from all C(w)
-	// needs to be a tuple (w, cluster), where w is the key
 	// Checks whether w in B(v) and retrieves d(w, v)
 	// TODO: Skal det være en 2-level table med den foreslående hash funktion?
 	// TODO: Husk også at gemme afstanden i Bunches

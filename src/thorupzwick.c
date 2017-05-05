@@ -51,13 +51,13 @@ void pp_clusters (struct clusterlist **C, int i)
 	return;
 }
 
-// TODO: Change to HASH_ITER, not inner loop
-void pp_bunches (struct bunch *bunches, unsigned int no_bunches)
+void pp_bunches (struct bunch *bunches)
 {
 	printf("Pretty print all bunches\n");
-	for (unsigned int i = 0; i < no_bunches; i++) {
-		for (int j = 0; j < bunches[i].no_nodes; j++) {
-			printf ("B(v:%d)=%d\n", bunches[i].v->v_id, bunches[i].nodes[j].v_id);
+	struct bunch *s, *tmp;
+	HASH_ITER(hh, bunches, s, tmp) {
+		for (int i = 0; i < s->no_nodes; i++) {
+			printf ("B(v:%d)=%d\n", s->v->v_id, s->nodes[i].v_id);
 		}
 	}
 	return;
@@ -72,27 +72,33 @@ void add_s_node_to_graph (struct graph *graph, struct aseq *ai)
 	return;
 }
 
-/* int dist (struct node *u, struct node *v, int k, struct bunch *bunches) */
-/* { */
-/* 	struct node	*w = malloc (sizeof (struct node)); */
-/* 	int i; */
+int dist (struct node *u, struct node *v, struct bunch *bunches)
+{
+	struct node	*w = malloc (sizeof (struct node));
+	struct bunch *bunch;
+	int i;
 
-/* 	memcpy (&w, &u, sizeof (u)); */
-/* 	i = 0; */
+	memcpy (&w, &u, sizeof (u));
+	i = 0;
 
-/* 	while (w != B(v)) { */
-/* 		// i <- i + 1 */
-/* 		i += i + 1; */
-/* 		// (u, v) <- (v, u) */
-/* 		struct node *tmp = malloc (sizeof (struct node)); */
-/* 		memcpy (&tmp, &u, sizeof (struct node)); */
-/* 		memcpy (&u, &v, sizeof (v)); */
-/* 		memcpy (&v, &tmp, sizeof (tmp)); */
-/* 		memcpy (&w, &bunches[]) */
-/* 	} */
+	// w != B(v)
+	for (bunch = bunches; bunch != NULL; bunch=bunch->hh.next) {
+		printf("B(%d)\n", bunch->v->v_id);
+		// i <- i + 1
+		i += i + 1;
+		// (u, v) <- (v, u)
+		struct node *tmp = malloc (sizeof (struct node));
+		memcpy (&tmp, &u, sizeof (struct node));
+		memcpy (&u, &v, sizeof (v));
+		memcpy (&v, &tmp, sizeof (tmp));
+		// w <- p_i (u)
+		memcpy (&w, &bunch->)
+	}
 
-/* 	return u->sp_est + v->sp_est; */
-/* } */
+	return u->sp_est + v->sp_est;
+}
+
+// TODO: Change all no_xxx to num_xxxx
 
 // We find p_i(v) to v in A_i as well as the distance d(v, A_i) from v to p_i(v). Note, p_i(v) in A_i and it is nearest to v which means d(p_i(v), v) = d(A_i, v). Note that as A_0 = V, d(A_0, v) = 0 and p_0(v) = v, which applies for all v in V
 // Also, if A_i == NULL, we have no pivot nodes p_i(v) for i
@@ -214,6 +220,7 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
 						decrease_key (Q, v, u, sp_est);
 					}
 				} else {
+					// TODO: Indsæt for grafens knud w_id i
 					min_heap_insert (Q, s->v_id,
 									 sp_est, graph);
 					in_heap[s->v_id] = 1;
@@ -228,10 +235,6 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
 	cluster->cluster = S;
 	cluster->no_nodes = no_nodes;
 	free (Q);
-
-	#ifdef DEBUG
-	pp_nodes (S, no_nodes);
-	#endif
 
 	return cluster;
 }
@@ -253,7 +256,6 @@ struct clusterlist *construct_clusters (struct graph *graph, struct aseq **A,
 	for (int w = 0; w < A[i]->seqsize; w++) {
 		// for every w ∈ A_k−1 we have C(w) = V
 		if (i == (k-1)) {
-			pp_graph (graph);
 			// create cluster C(w) = V, computing the distances from w to all other v in V
 			struct cluster *cw = dijkstra_cluster_tz (graph, &A[i]->nodes[w],
 													  NULL, k, i);
@@ -348,7 +350,7 @@ void prepro (struct graph *graph, int k)
 	struct heap *heap;
 	struct clusterlist *C[k];
 	// TODO: return bunches?
-	struct bunch *bunches = malloc (graph->V * sizeof (struct bunch));
+	struct bunch *bunches = NULL;
 
 	int val = (int) INFINITY;
 	// saving all v in V in array nodes
@@ -421,45 +423,42 @@ void prepro (struct graph *graph, int k)
 		pp_clusters (C, i);
 		#endif
 	}
-
-	bunches = bunches;
+	// TODO: Use tmp array instead and then copy in the end (like for aseqs), used for b->nodes
+	/* for alle v \in V skal jeg lave en
+	   hash table, som så indeholder alle knuder w som v er i cluster med */
 	// Constructing bunches for all v, containing all w of all C(w) v belongs to
 	for (unsigned int j = 0; j < graph->V; j++) {
-		printf ("hej1\n");
-		struct bunch *bunch = NULL;
 		struct bunch *b = malloc (sizeof (struct bunch));
 		// mandatory to set b to 0 (according to uthash)
 		memset (b, 0, sizeof (struct bunch));
 		b->v = malloc (sizeof (struct node));
+		// copy current v in V to tmp bunch
 		memcpy (b->v, &nodes[j], sizeof(struct node));
-		printf ("hej2\n");
-		// hashhandle, struct to work with, v of bunch is key, b is temp struct
-		HASH_ADD (hh, bunch, v, sizeof(b->v), b);
-		bunch->piv = malloc (k * sizeof (struct node));
-		// TODO: Use tmp array instead and then copy in the end (like for aseqs)
-		bunch->nodes = malloc (graph->V * sizeof (struct node));
-		printf ("hej3\n");
+		b->piv = malloc (k * sizeof (struct node));
+		b->nodes = malloc (graph->V * sizeof (struct node));
 		for (int i = 0; i < k; i ++) {
-			memcpy (&bunch->piv[i], &pivot_nodes[i][nodes[j].v_id], sizeof (pivot_nodes[i][nodes[j].v_id]));
-			for (int c = 0; c < C[i]->no_clusters; c++) {
-				struct cluster *cluster = &C[i]->clusters[c];
-				for (int v = 0; v < cluster->no_nodes; v++) {
-					if (cluster->cluster[v].v_id == bunch->v->v_id) {
-						printf ("hej4\n");
-						memcpy (&bunch->nodes[bunch->no_nodes], &cluster->w, sizeof (struct node));
-						bunch->no_nodes += 1;
+			if (A[i]->seqsize > 0) {
+				memcpy (&b->piv[i], &pivot_nodes[i][nodes[j].v_id], sizeof (pivot_nodes[i][nodes[j].v_id]));
+				for (int c = 0; c < C[i]->no_clusters; c++) {
+					struct cluster *cluster = &C[i]->clusters[c];
+					for (int v = 0; v < cluster->no_nodes; v++) {
+						if (cluster->cluster[v].v_id == b->v->v_id) {
+							memcpy (&b->nodes[b->no_nodes], cluster->w, sizeof (struct node));
+							b->no_nodes += 1;
+						}
 					}
 				}
 			}
 		}
-		printf ("test :%d\n", bunch->no_nodes);
-		memcpy (&bunches[j], bunch, sizeof(struct bunch));
-		printf ("test :%d\n", bunches[j].no_nodes);
+		// hashhandle, struct to work with, v of bunch is key, b is temp struct
+		HASH_ADD (hh, bunches, v, sizeof(b->v), b);
 	}
 
-	pp_bunches (bunches, graph->V);
-	// Hash table for en knude v skal indeholde netop de knuder w, der tilhører B(v), og disse knuder w er netop dem, hvor v tilhører C(w).
+	#ifdef DEBUG
+	pp_bunches (bunches);
+	#endif
 
+	// Hash table for en knude v skal indeholde netop de knuder w, der tilhører B(v), og disse knuder w er netop dem, hvor v tilhører C(w).
 	// zero level: B(v) for v in V.
 	/*
 	  Finally, the algorithm constructs (2-level) hash tables for the bunches B(v), for

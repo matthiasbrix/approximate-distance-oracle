@@ -16,24 +16,28 @@ typedef struct {
 int main(int argc, char *argv[]) {
 	argc = argc;
 	argv = argv;
-	record_t l, *p, *r, *tmp, *records = NULL;
+	record_t *p, *r, *tmp, *records = NULL;
+	/* record_t l; */
 
-	r = (record_t*)malloc( sizeof(record_t) );
-	memset(r, 0, sizeof(record_t));
-	r->key.a = 'a';
-	r->key.b = 1;
-	HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+	for (int i = 0; i < 2; i++) {
+		r = (record_t*)malloc( sizeof(record_t) );
+		memset(r, 0, sizeof(record_t));
+		r->key.a = 'a';
+		r->key.b = i;
+		HASH_ADD(hh, records, key, sizeof(record_key_t), r);
+	}
 
-	memset(&l, 0, sizeof(record_t));
-	l.key.a = 'a';
-	l.key.b = 1;
-	HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p);
+	/* memset(&l, 0, sizeof(record_t)); */
+	/* l.key.a = 'a'; */
+	/* l.key.b = 1; */
+	/* HASH_FIND(hh, records, &l.key, sizeof(record_key_t), p); */
 
-	if (p) printf("found %c %d\n", p->key.a, p->key.b);
+	/* if (p) printf("found %c %d\n", p->key.a, p->key.b); */
 
 	HASH_ITER(hh, records, p, tmp) {
-	  HASH_DEL(records, p);
-	  free(p);
+		printf ("hej! %d\n", p->key.b);
+		HASH_DEL(records, p);
+		free(p);
 	}
 	return 0;
 }

@@ -3,41 +3,33 @@
 
 #include "graph.h"
 #include "filehandling.h"
-#include "uthash.h"
-
-// TODO: Have all pointer be with the variable name
-
-extern struct bunch *hash_bunch;
 
 struct aseq {
   struct node *nodes;
   int seqsize;
 };
 
-// TODO: Make it hashable with w as key
 struct cluster {
   struct node *w;
-  struct node *cluster;
-  int no_nodes;
+  struct node *nodes;
+  int num_nodes;
 };
 
 struct clusterlist {
-  int no_clusters;
   struct cluster *clusters;
+  int num_clusters;
 };
 
 struct bunch {
-  //struct bunch *bunch;
   struct node *v;
   struct node *piv; // witnesses p_i(v) and distances d(p_i(v), v) = d(A_i. v)
   struct node *nodes;
-  int no_nodes;
-  UT_hash_handle hh; /* makes this structure hashable */
+  int num_nodes;
 };
 
 struct bunchlist {
-  int no_bunches;
   struct bunch *bunches;
+  int num_bunches;
 };
 
 #endif

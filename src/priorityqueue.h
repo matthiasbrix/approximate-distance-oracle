@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "uthash.h"
 
 #define HEAP_UNDERFLOW (-1)
 #define KEY_SIZE (-2)
@@ -13,6 +14,8 @@
 #define LCHILD(x) MULTBY2(x) + 1
 #define RCHILD(x) MULTBY2(x) + 2
 #define PARENT(x) (x - 1) / 2
+
+extern struct node *hash_node;
 
 /**
  * TODO: HOW TO COMMENT
@@ -25,12 +28,14 @@
  * If the semaphore is not released within the specified number of jiffies,
  * this function returns -ETIME.  It returns 0 if the semaphore was acquired.
  */
+
 // TODO: sp_est should be unsigned int
 struct node {
   int v_id;
   int sp_est;
   int index;
   struct node *pi; // predecessor
+  UT_hash_handle hh; // makes this structure hashable
 };
 
 struct heap {
@@ -45,6 +50,7 @@ struct adjlistnode {
   struct adjlistnode *next;
 };
 
+// TODO: Få de to nederst i graph.h
 struct adjlist {
   struct node* nd;
   struct adjlistnode* head; // start of list

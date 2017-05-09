@@ -140,6 +140,13 @@ void min_heap_insert (struct heap *heap, int id,
 	return;
 }
 
+void free_heap (struct heap *heap)
+{
+	for (int i = 0; i < heap->heap_size; i++)
+		free (heap->nodes[i]);
+	free (heap);
+}
+
 void pp_heap (struct heap *hp)
 {
 	printf ("\nPRINT HEAP NODES\n");

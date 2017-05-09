@@ -15,8 +15,6 @@
 #define RCHILD(x) MULTBY2(x) + 2
 #define PARENT(x) (x - 1) / 2
 
-extern struct node *hash_node;
-
 /**
  * TODO: HOW TO COMMENT
  * down_timeout - acquire the semaphore within a specified time
@@ -50,7 +48,6 @@ struct adjlistnode {
   struct adjlistnode *next;
 };
 
-// TODO: Få de to nederst i graph.h
 struct adjlist {
   struct node* nd;
   struct adjlistnode* head; // start of list
@@ -67,10 +64,11 @@ void min_heapify (struct heap *heap, unsigned int i);
 void build_min_heap (struct heap *heap);
 struct node* minimum (struct heap *heap);
 struct node* extract_min (struct heap *heap);
+void min_heap_insert (struct heap *heap, int id, int distance, struct graph *graph);
 void pp_heap (struct heap *hp);
 void decrease_key (struct heap *heap, struct node *v, struct node *u, int sp_est);
 struct heap* copy_heap_struct (struct heap *old_heap);
 void find_node_pos (struct heap *heap, int u);
-void min_heap_insert (struct heap *heap, int id, int distance, struct graph *graph);
+void free_heap (struct heap *heap);
 
 #endif

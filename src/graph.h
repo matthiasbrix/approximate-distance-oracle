@@ -15,5 +15,6 @@ struct adjlistnode *add_adj_node (int v, int weight);
 void add_edges (struct graph *graph, int u, int v, unsigned int w);
 struct graph *copy_graph_struct (struct graph* old_graph, struct heap *heap);
 struct heap *initialise_single_source_tz (struct graph *graph);
+void free_graph (struct graph *graph);
 
 #endif

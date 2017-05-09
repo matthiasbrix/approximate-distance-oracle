@@ -130,11 +130,10 @@ struct node* dijkstra_alg (struct graph *graph, int s)
 struct node *dijkstra_alg_tz (struct graph *graph, struct heap *Q)
 {
 	struct node *S = malloc (Q->heap_size * sizeof (struct node));
-	int i = 0;
+
 	while (Q->heap_size != 0) {
 		struct node *u = extract_min (Q);
-		// TODO: Overvej at bruge u->v_id til S, altså S[u->v_id], så behøver jeg måske i find_pivot ikke dist, men kan blot nøjes med sps, og kan slette dist. Så skal der holdes int pos i dijkstra, -1 ellers sæt 1 ind hvor v_id er sat
-		memcpy (&S[i], u, sizeof (struct node));
+		memcpy (&S[u->v_id], u, sizeof (struct node));
 		for (struct adjlistnode *s = graph->adjlists[u->v_id].head;
 			 s != NULL; s = s->next) {
 			struct node *v = graph->adjlists[s->v_id].nd;
@@ -143,11 +142,21 @@ struct node *dijkstra_alg_tz (struct graph *graph, struct heap *Q)
 				decrease_key (Q, v, u, sp_est);
 			}
 		}
-		// TODO:
-		// graph->adjlists[u->v_id].nd = NULL;
-		i += 1;
+		// avoiding the node can be relaxed again
+		graph->adjlists[u->v_id].nd = NULL;
 	}
 	return S;
+}
+
+void free_graph (struct graph *graph)
+{
+	free (graph->adjlists->head);
+	graph->adjlists->head = NULL;
+	for (int i = 0; i < (int) graph->V; i++)
+		free (&graph->adjlists[i]);
+	graph->adjlists = NULL;
+	free (graph);
+	graph = NULL;
 }
 
 void pp_graph (struct graph* graph)

@@ -1,6 +1,7 @@
 #include "thorupzwick.h"
 #include <time.h>
 #include <assert.h>
+#include <unistd.h>
 
 #define DEBUG
 
@@ -393,22 +394,21 @@ void construct_bunches (struct clusterlist **C, int k, struct aseq **A, struct b
 
 // TODO: return bunches?
 // Should have at most time complexity O(kn^{1+1/k})
-void prepro (struct graph *graph, int k)
+struct prepro *prepro (struct graph *graph, int k)
 {
 	unsigned int n = graph->V;
+	int val = (int) INFINITY;
 	struct node nodes[n];
 	// k+1, for the kth set where d(A_k, v) = infinity for all v in V
-	/* int dist[k+1][n]; */
 	struct node *dist[k+1];
 	// For each v the pivot node to each i, thus v*k
 	struct node *pivot_nodes[k];
 	struct node *pivot_arr;
-
 	struct aseq *A[k];
 	struct heap *heap;
 	struct clusterlist *C[k];
 	struct bunchlist *bunchlist = malloc (sizeof (struct bunchlist));
-	int val = (int) INFINITY;
+	struct prepro *prepro = malloc (sizeof (struct prepro));
 
 	bunchlist->num_bunches = n;
 	bunchlist->bunches = malloc (bunchlist->num_bunches * sizeof(struct bunch));
@@ -437,7 +437,15 @@ void prepro (struct graph *graph, int k)
 	// k iterations
 	for (int i = k-1; i >= 0; i--) {
 
-		if (A[i]->seqsize == 0) {
+		if (i == k-1 && A[i]->seqsize == 0) {
+			printf ("\nA_{k-1} == Ø, hence an empty set. Rerunning the prepro algorithm!\n");
+			prepro->nodes = NULL;
+			prepro->bunchlist = NULL;
+			prepro->success = false;
+			sleep (3);
+			return prepro;
+		}
+		else if (A[i]->seqsize == 0) {
 			// Empty set, thus d(A_i, v) = infinity (thus NULL array)
 			dist[i] = NULL;
 			// p_i (v) undefined.
@@ -458,6 +466,7 @@ void prepro (struct graph *graph, int k)
 		// compute d(A_i, v), running dijkstra once for each i
 		struct node *sps = dijkstra_alg_tz (write_graph, write_heap);
 		dist[i] = sps;
+
 		#ifdef DEBUG
 		pp_graph (write_graph);
 		printf ("prepro dijkstra result for i=%d:\n", i);
@@ -466,7 +475,8 @@ void prepro (struct graph *graph, int k)
 
 		// No use of write heap and graph anymore
 		free_heap (write_heap);
-		free (write_graph);
+		free_graph (write_graph);
+
 		// Finding the pivot elements, note p_k(v) undefined as A_k = Ø (as in the else case)
 		if (i != k-1) {
 			pivot_arr = find_pivot (pivot_nodes[i+1], dist[i], n);
@@ -492,11 +502,36 @@ void prepro (struct graph *graph, int k)
 	pp_bunches (bunchlist);
 	#endif
 
-	int d = distk (&nodes[0], &nodes[4], bunchlist);
-	printf ("result of call dist(0, 4) = %d\n", d);
-
+	prepro->nodes = malloc (graph->V * sizeof(struct node));
+	prepro->nodes = nodes;
+	prepro->bunchlist = malloc (sizeof (struct bunchlist));
+	prepro->bunchlist = bunchlist;
+	prepro->success = true;
 	printf ("***** prepro done ******\n");
-	return;
+	return prepro;
+}
+
+void test_prepro ()
+{
+	struct graph* graph_3 = init_graph (5);
+	add_edges (graph_3, 0, 1, 10);
+	add_edges (graph_3, 0, 2, 5);
+	add_edges (graph_3, 0, 4, 7);
+	add_edges (graph_3, 1, 2, 2);
+	add_edges (graph_3, 1, 3, 1);
+	add_edges (graph_3, 2, 3, 9);
+	add_edges (graph_3, 2, 4, 2);
+	add_edges (graph_3, 3, 4, 4);
+	int k = 3;
+	struct prepro *pp = malloc (sizeof (struct prepro));
+	pp->success = false;
+	while (!pp->success) {
+		pp = prepro (graph_3, k);
+	}
+	int u = 1;
+	int v = 2;
+	int d = distk (&pp->nodes[u], &pp->nodes[v], pp->bunchlist);
+	printf ("result of call dist(%d, %d) = %d\n", u, v, d);
 }
 
 // Hardcoded tests from various sources
@@ -548,21 +583,6 @@ void hardcoded_tests ()
 	pp_graph (graph_3);
 	struct node *S_3 = dijkstra_alg (graph_3, 0);
 	pp_nodes (S_3, 5);
-}
-
-void test_prepro ()
-{
-	struct graph* graph_3 = init_graph (5);
-	add_edges (graph_3, 0, 1, 10);
-	add_edges (graph_3, 0, 2, 5);
-	add_edges (graph_3, 0, 4, 7);
-	add_edges (graph_3, 1, 2, 2);
-	add_edges (graph_3, 1, 3, 1);
-	add_edges (graph_3, 2, 3, 9);
-	add_edges (graph_3, 2, 4, 2);
-	add_edges (graph_3, 3, 4, 4);
-	int k = 3;
-	prepro (graph_3, k);
 }
 
 void run (const char *fname_read, const char *fname_write)

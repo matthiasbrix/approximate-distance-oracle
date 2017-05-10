@@ -150,11 +150,6 @@ struct node *dijkstra_alg_tz (struct graph *graph, struct heap *Q)
 
 void free_graph (struct graph *graph)
 {
-	free (graph->adjlists->head);
-	graph->adjlists->head = NULL;
-	for (int i = 0; i < (int) graph->V; i++)
-		free (&graph->adjlists[i]);
-	graph->adjlists = NULL;
 	free (graph);
 	graph = NULL;
 }

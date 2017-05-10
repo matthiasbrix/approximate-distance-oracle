@@ -32,4 +32,10 @@ struct bunchlist {
   int num_bunches;
 };
 
+struct prepro {
+  struct node *nodes;
+  struct bunchlist *bunchlist;
+  bool success;
+};
+
 #endif

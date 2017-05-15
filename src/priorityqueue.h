@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "uthash.h"
+#include "../lib/uthash.h"
 
 #define HEAP_UNDERFLOW (-1)
 #define KEY_SIZE (-2)
@@ -14,18 +14,6 @@
 #define LCHILD(x) MULTBY2(x) + 1
 #define RCHILD(x) MULTBY2(x) + 2
 #define PARENT(x) (x - 1) / 2
-
-/**
- * TODO: HOW TO COMMENT
- * down_timeout - acquire the semaphore within a specified time
- * @sem: the semaphore to be acquired
- * @timeout: how long to wait before failing
- *
- * Attempts to acquire the semaphore.  If no more tasks are allowed to
- * acquire the semaphore, calling this function will put the task to sleep.
- * If the semaphore is not released within the specified number of jiffies,
- * this function returns -ETIME.  It returns 0 if the semaphore was acquired.
- */
 
 // TODO: sp_est should be unsigned int
 struct node {
@@ -41,10 +29,9 @@ struct heap {
   int heap_size;
 };
 
-// TODO: weight should be unsigned int
 struct adjlistnode {
   int v_id;
-  int weight;
+  int weight; // weights are signed integers in DIMACS files
   struct adjlistnode *next;
 };
 
@@ -54,7 +41,7 @@ struct adjlist {
 };
 
 struct graph {
-  unsigned int V; // Number of vertices
+  unsigned int V; // nNumber of vertices
   struct adjlist *adjlists;
 };
 

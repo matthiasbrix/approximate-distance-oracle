@@ -4,6 +4,10 @@
 #include "priorityqueue.h"
 #include <math.h>
 #include <stdbool.h>
+#include <stdint.h>
+
+// Indicating whether 0 or 1 indexed for vertices
+extern int offset;
 
 struct graph* init_graph (int V);
 void pp_nodes (struct node *S, int i);

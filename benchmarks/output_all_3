@@ -1,0 +1,16 @@
+***** preprocessing done ******
+dist: B(100) w_id:5
+i=0
+w_id:4810, sp:2435 u_id:100 v_id:5
+dist: B(5) w_id:4810
+i=1
+w_id:0, sp:0 u_id:100 v_id:100
+dist: B(100) w_id:0
+i=2
+w_id:0, sp:0 u_id:100 v_id:100
+dist: B(100) w_id:0
+i=3
+w_id:4809, sp:2837 u_id:100 v_id:100
+dist: B(100) w_id:4809
+result of call dist(5, 100) = 2837
+Time spent on running the program: 88.861729

@@ -1,37 +1,6 @@
 #include "thorupzwick.h"
-#include <time.h>
-#include <assert.h>
-#include <unistd.h>
 
-#define DEBUG
-
-// TODO: en fil til preprocessing
-// TODO: en fil til query og main
-// TODO: tid, plads, og hvor tæt kommer jeg på Dijkstras (SSP)
-// tid, plads skal være hardware.
-// Stemmer ekspirementerne overens med teori?
-// du skal dog nævne i din rapport, hvilken hash table du bruger
-// Skriv i rapport om at man kan udvide med floats
-// Hash table for en knude v skal indeholde netop de knuder w, der tilhører B(v), og disse knuder w er netop dem, hvor v tilhører C(w).
-	// zero level: B(v) for v in V.
-/*
-  Finally, the algorithm constructs (2-level) hash tables for the bunches B(v), for
-  v ∈ V, and outputs the witnesses p_i(v), the distances δ(p_i(v), v) = δ(A_i, v), and
-  the hash tables of B(v), for every 1 ≤ i ≤ k and v ∈ V. In addition to that, the
-  preprocessing algorithm also outputs, for every w ∈ V, the shortest paths tree T (w)
-  that spans the cluster C(w).
- */
-// HVorfor vil thorup-zwick ikke være lige så "rigtig" som normal Dijkstra?
-// http://eternallyconfuzzled.com/tuts/algorithms/jsw_tut_hashing.aspx
-// TODO: Læs om hash funktionen af uthash
-// TODO: for every v in V, generate bunches B(v) from all C(w)
-// Checks whether w in B(v) and retrieves d(w, v)
-// TODO: Skal det være en 2-level table med den foreslående hash funktion?
-// TODO: Husk også at gemme afstanden i Bunches
-// by definition, w ∈ B(v) if and only if v ∈ C(w).
-// TODO: Have all pointer be with the variable name
-// Bunche gen. er som DFS? (spørg ellers Christian)
-// Skriv til uthash om hash funktioner
+// #define DEBUG
 
 void pp_aseqs (struct aseq **A, int k)
 {
@@ -40,7 +9,7 @@ void pp_aseqs (struct aseq **A, int k)
 		if (A[i]->seqsize > 0) {
 			for (int j = 0; j < A[i]->seqsize; j++)
 				printf ("A_{%d,%d} v_id:%d spest:%d\n", i, j,
-						A[i]->nodes[j].v_id, A[i]->nodes[j].sp_est);
+						A[i]->nodes[j].v_id+offset, A[i]->nodes[j].sp_est);
 		}
 	}
 
@@ -52,7 +21,7 @@ void pp_clusters (struct clusterlist **C, int i)
 	printf("Pretty print all clusters\n");
 	for (int a = 0; a < C[i]->num_clusters; a++)
 		for (int b = 0; b < C[i]->clusters[a].num_nodes; b++)
-			printf ("cluster nodes for C(w:%d)=v:%d, SP:%d\n", C[i]->clusters[a].w->v_id, C[i]->clusters[a].nodes[b].v_id, C[i]->clusters[a].nodes[b].sp_est);
+			printf ("cluster nodes for C(w:%d)=v:%d, SP:%d\n", C[i]->clusters[a].w->v_id+offset, C[i]->clusters[a].nodes[b].v_id+offset, C[i]->clusters[a].nodes[b].sp_est);
 
 	return;
 }
@@ -63,21 +32,19 @@ void pp_bunches (struct bunchlist *bunchlist)
 	for (int i = 0; i < bunchlist->num_bunches; i++) {
 		struct node *s;
 		// iterate over hash elements of B(v)
-		for(s = bunchlist->bunches[i].nodes; s != NULL; s = s->hh.next) {
-			printf("B(v:%d)=w:%d, SP:%d\n", bunchlist->bunches[i].v->v_id, s->v_id, s->sp_est);
+		for (s = bunchlist->bunches[i].nodes; s != NULL; s = s->hh.next) {
+			printf("B(v:%d)=w:%d, SP:%d\n", bunchlist->bunches[i].v->v_id+offset, s->v_id+offset, s->sp_est);
 		}
-		/* HASH_ITER (hh, bunchlist->bunches[i].nodes, s, tmp) { */
-		/* 	printf ("B(v:%d)=w:%d, SP:%d\n", bunchlist->bunches[i].v->v_id, s->v_id, s->sp_est); */
-		/* } */
 	}
 
 	return;
 }
 
-void pp_pivots (struct node *pivot_arr, struct node *nodes, unsigned int n)
+void pp_pivots (struct node *pivot_arr, struct node *nodes, unsigned int n, int i)
 {
-	for (unsigned int i = 0; i < n-1; i++) {
-		printf ("pivot for v:%d is:%d, dist:%d, dist should be %d\n", nodes[i].v_id, pivot_arr[nodes[i].v_id].v_id, pivot_arr[nodes[i].v_id].sp_est, pivot_arr[nodes[i].v_id].sp_est);
+	printf("Pretty print all pivot elements (witnesses) \n");
+	for (unsigned int j = 0; j < n-1; j++) {
+		printf ("p_%d (%d)=%d, dist:%d\n", i, nodes[j].v_id+offset, pivot_arr[nodes[j].v_id].v_id+offset, pivot_arr[nodes[j].v_id].sp_est);
 	}
 }
 
@@ -92,6 +59,7 @@ void add_s_node_to_graph (struct graph *graph, struct aseq *ai)
 	for (int i = 0; i < ai->seqsize; i++) {
 		add_edges (graph, graph->V, ai->nodes[i].v_id, 0);
 	}
+
 	return;
 }
 
@@ -104,31 +72,40 @@ void add_s_node_to_graph (struct graph *graph, struct aseq *ai)
 struct node* find_pivot (struct node *aiplusone_pivot_arr,
 						 struct node *nodes, unsigned int n)
 {
-	int *visited_nodes = malloc ((n-1) * sizeof(int));
-	memset (visited_nodes, -1, (n-1) * sizeof(visited_nodes));
 	// no need to allocate for s node, therefore n-1
-	struct node* pivot_arr = malloc ((n-1) * sizeof (struct node));
+	int *visited_nodes = malloc ((n-1) * sizeof (int));
+	for (unsigned int i = 0; i < n-1; i++)
+		visited_nodes[i] = -1;
+
+	struct node *pivot_arr = malloc ((n-1) * sizeof (struct node));
+
+	if (pivot_arr == NULL) {
+		printf ("Failed to allocate pivot array\n");
+		exit (-1);
+	}
 
 	// skipping node s in nodes, assuming s is the last node
 	for (unsigned int i = 0; i < n-1; i++) {
-
 		struct node *piv = NULL;
 		struct node *v = nodes[i].pi;
+
+		if (v == NULL)
+			continue;
+
 		if (visited_nodes[nodes[i].v_id] != -1) {
 			int pivid = pivot_arr[nodes[i].v_id].v_id;
 			memcpy (&pivot_arr[nodes[i].v_id], &pivot_arr[pivid], sizeof(pivot_arr[pivid]));
 			pivot_arr[nodes[i].v_id].sp_est = nodes[nodes[i].v_id].sp_est;
-		}
-		else if (v->v_id == nodes[n-1].v_id) {
+		} else if (v->v_id == nodes[n-1].v_id) {
 			memcpy (&pivot_arr[nodes[i].v_id], &nodes[i], sizeof(nodes[i]));
 			pivot_arr[nodes[i].v_id].sp_est = 0;
-		}
-		else {
+		} else {
 			while (v) {
 				piv = v;
 				// avoid reaching the s node
-				if (v->pi->v_id == nodes[n-1].v_id)
+				if (v->pi != NULL && v->pi->v_id == nodes[n-1].v_id) {
 					break;
+				}
 				visited_nodes[v->v_id] = nodes[i].v_id;
 				v = v->pi;
 			}
@@ -141,6 +118,8 @@ struct node* find_pivot (struct node *aiplusone_pivot_arr,
 			memcpy (&pivot_arr[nodes[i].v_id], &aiplusone_pivot_arr[nodes[i].v_id], sizeof (aiplusone_pivot_arr[nodes[i].v_id]));
 		}
 	}
+
+	free (visited_nodes);
 
 	return pivot_arr;
 }
@@ -155,49 +134,39 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
 	int idx = 0;
 	int num_nodes = 0;
 	int *in_heap = calloc (graph->V, sizeof (int));
-	assert (in_heap != NULL);
 	int *relaxed = calloc (graph->V, sizeof (int));
-	struct heap *Q = malloc (sizeof (struct heap));
-	assert (Q != NULL);
-	Q->nodes = malloc (sizeof(struct node*));
-	assert (Q->nodes != NULL);
-	struct node tmp_S[graph->V];
 	struct cluster *cluster = malloc (sizeof (struct cluster));
-	assert (cluster != NULL);
-	struct node *S;
+	struct heap *Q = malloc (sizeof (struct heap));
+	Q->nodes = malloc (graph->V * sizeof(struct node*));
+	struct node *S = malloc (graph->V * sizeof (struct node));
+
+	if (Q == NULL || S == NULL || in_heap == NULL
+		|| relaxed == NULL || Q->nodes == NULL || cluster == NULL) {
+		printf ("Failed to allocate memory for in_heap, relaxed, S, Q, Q->nodes or cluster\n");
+		exit (-1);
+	}
 
 	Q->heap_size = 0;
 	// w.d = 0
 	min_heap_insert (Q, w->v_id, 0, graph);
 	num_nodes++;
 
-	#ifdef DEBUG
-	printf ("dijkstra cluster with w:%d\n", w->v_id);
-	pp_graph (graph);
-	#endif
-
 	while (Q->heap_size != 0) {
 		struct node *u = extract_min (Q);
 		// tmp_S[idx] gets assigned value from u, copying to its address
-		tmp_S[idx] = *u;
+		memcpy (&S[idx], u, sizeof(struct node));
 		// avoiding node u can be relaxed in next iterations,
 		// as u is no longer on heap
 		relaxed[u->v_id] = 1;
 		in_heap[u->v_id] = 0;
-		for (struct adjlistnode *s = graph->adjlists[tmp_S[idx].v_id].head;
+		for (struct adjlistnode *s = graph->adjlists[S[idx].v_id].head;
 			 s != NULL; s = s->next) {
 			struct node *v = graph->adjlists[s->v_id].nd;
-
-			#ifdef DEBUG
-			if (pivot_nodes != 0) {
-				printf ("%d < dist[i+1][%d]: %d\n", (u->sp_est + s->weight), s->v_id,
-						pivot_nodes[s->v_id].sp_est);
-			}
-			#endif
 			// relax the edge (u,v) only if u.d + l(u,v) < d(A_{i+1}, v),
 			// where d(A_{i+1}, v) = d(p_{i+1}(v), v)
 			// that is, if w is strictly closer to v than all the vertices of A_i+1
-			// OR: TODO: Hvorfor? If i==k-1 and vertex hasn't been relaxed and in heap!
+			// OR: If i==k-1, no pivot element to compare with, also
+			// vertex hasn't been relaxed and is in heap!
 			if (((pivot_nodes != 0) && (v != NULL) &&
 					 (u->sp_est + s->weight) < pivot_nodes[s->v_id].sp_est
 					 && relaxed[s->v_id] == 0) ||
@@ -219,147 +188,67 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
 		idx += 1;
 	}
 
-	S = malloc (num_nodes * sizeof (struct node));
-	assert (S != NULL);
+	cluster->nodes = malloc (num_nodes * sizeof (struct node));
+	if (cluster->nodes == NULL) {
+		printf ("Alloc of cluster->nodes failed\n");
+		exit (-1);
+	}
 	for (int i = 0; i < num_nodes; i++)
-		memcpy (&S[i], &tmp_S[i], sizeof (struct node));
+		memcpy (&cluster->nodes[i], &S[i], sizeof (struct node));
 
 	cluster->w = w;
-	cluster->nodes = S;
 	cluster->num_nodes = num_nodes;
+
+	free (in_heap);
+	free (relaxed);
 	free (Q);
 
 	return cluster;
 }
 
-// TODO: Er dobbel loop ok?
 // the cluster C(w) of an i-center w ∈ A_i − A_i+1 contains all vertices whose distance to w is smaller than their distance to all (i + 1)-centers, dvs. C(w) = {v in V | d(w, v) < d(A_i+1, v)}
 // Note that for every w ∈ A_k−1 we have C(w) = V, as δ(A_k, v) = ∞, for every v ∈ V
 struct clusterlist *construct_clusters (struct graph *graph, struct aseq **A,
 										struct node *pivot_nodes, int i, int k)
 {
-	struct cluster tmp_clusters[A[i]->seqsize];
-	bool to_cluster = true;
 	int num_clusters = 0;
+	struct cluster *tmp_clusters = malloc (A[i]->seqsize * sizeof(struct cluster));
 	struct clusterlist *C = malloc (sizeof (struct clusterlist));
-	struct cluster *clusters;
 
 	// For every w in A_i - A_i+1
 	for (int w = 0; w < A[i]->seqsize; w++) {
 		// for every w ∈ A_k−1 we have C(w) = V
 		if (i == (k-1)) {
 			// create cluster C(w) = V, computing the distances from w to all other v in V
-			struct cluster *cw = dijkstra_cluster_tz (graph, &A[i]->nodes[w],
-													  NULL, k, i);
+			struct cluster *cw = dijkstra_cluster_tz (graph, &A[i]->nodes[w], NULL, k, i);
 			memcpy (&tmp_clusters[num_clusters], cw, sizeof (struct cluster));
 			num_clusters += 1;
-		}
-		else {
+		} else {
 			// check if w in A_i - A_i+1
-			for (int j = 0; j < A[i+1]->seqsize; j++) {
-				if (A[i]->nodes[w].v_id == A[i+1]->nodes[j].v_id) {
-					to_cluster = false;
-				}
-			}
-			// if indeed w in A_i - A_i+1, go on with dijkstra to create a cluster
-			if (to_cluster) {
+			if (A[i+1]->added[A[i]->nodes[w].v_id]) {
+				continue;
+			} else {
+				// if indeed w in A_i - A_i+1, go on with dijkstra to create a cluster
 				// create cluster C(w)
 				struct cluster *cw = dijkstra_cluster_tz (graph, &A[i]->nodes[w],
 														  pivot_nodes, k, i);
 				memcpy (&tmp_clusters[num_clusters], cw, sizeof (struct cluster));
 				num_clusters += 1;
 			}
-			to_cluster = true;
 		}
 	}
 
-	clusters = malloc (num_clusters * sizeof (struct node));
+	C->clusters = malloc (num_clusters * sizeof (struct node));
+	if (C->clusters == NULL) {
+		printf ("Alloc of C->clusters failed\n");
+		exit (-1);
+	}
 	for (int i = 0; i < num_clusters; i++)
-		memcpy (&clusters[i], &tmp_clusters[i], sizeof (struct cluster));
+		memcpy (&C->clusters[i], &tmp_clusters[i], sizeof (struct cluster));
 
-	C->clusters = clusters;
 	C->num_clusters = num_clusters;
 
 	return C;
-}
-
-void create_aseqs (struct aseq **A, int k, struct graph *graph, struct node *nodes)
-{
-	int seqsizes[k];
-	struct node tmp_arr[graph->V];
-	// A_k <- Ø
-	A[k] = NULL;
-	// A_0 <- V. Running time O(n)
-	A[0] = malloc (sizeof (struct aseq));
-	A[0]->nodes = malloc (graph->V * sizeof(struct node));
-	for (unsigned int i = 0; i < graph->V; i++) {
-		memcpy (&A[0]->nodes[i], &nodes[i], sizeof(struct node));
-	}
-
-	A[0]->seqsize = graph->V;
-	seqsizes[0] = graph->V;
-	// Set the seed
-	srand((unsigned)time(NULL));
-
-	for (int i = 1; i <= k-1; i++) {
-		seqsizes[i] = 0;
-		for (int j = 0; j < seqsizes[i-1]; j++) {
-			// Generates 0.0 - 1.0
-			double rnd = (double)rand()/RAND_MAX;
-			// Check random number is <= n^{-1/k}
-			if (rnd <= pow (graph->V, -1.0/(double)k)) {
-				memcpy (&tmp_arr[seqsizes[i]], &A[i-1]->nodes[j],
-						sizeof (struct node));
-				seqsizes[i] += 1;
-			}
-		}
-		A[i] = malloc (sizeof (struct aseq));
-		A[i]->nodes = malloc (seqsizes[i] * sizeof(struct node));
-		for (int l = 0; l < seqsizes[i]; l++) {
-			memcpy (&A[i]->nodes[l], &tmp_arr[l], sizeof (struct node));
-		}
-		A[i]->seqsize = seqsizes[i];
-	}
-}
-
-// TODO: Should u and v be integers?
-// u and v are the two vertices whose distance is to be estimated.
-// If w in B(v) it returns d(w, u) + d(w, v). The distance d(w, u) = d(p_i(u), u) is
-// read directly from the data structure constructed in prepro. Also, d(w, v) = d(v, w)
-// at most k accesses as w in A_{k-1} and A_{k-1} \subseteq for every v in V
-int distk (struct node *u, struct node *v, struct bunchlist *bunchlist)
-{
-	struct node	w;
-	int i = 0;
-	int dist = 0;
-
-	// w = u = p_0(u)
-	w = *u;
-	
-	// while w not in B(v)
-	while (1) {
-		struct node *out, tmp;
-		printf ("dist: B(%d) w:%d\n", v->v_id, w.v_id);
-		// checking if w in B(v), where nodes are vertices w in V
-		HASH_FIND_INT(bunchlist->bunches[v->v_id].nodes, &w.v_id, out);
-		if (out) {
-			// if w in B(v), break loop
-			dist = out->sp_est;
-			break;
-		} else {
-			printf ("i=%d\n", i);
-			// i <- i + 1
-			i += 1;
-			// (u, v) <- (v, u)
-			tmp = *u;
-			u = v;
-			v = &tmp;
-			// w <- p_i (u)
-			w = bunchlist->bunches[u->v_id].piv[i];
-			printf ("w:%d=%d %d %d\n", w.v_id, w.sp_est, u->v_id, v->v_id);
-		}
-	}
-	return dist;
 }
 
 // Generating bunches from the clusters. Runs in linear time of the cluster size
@@ -392,13 +281,77 @@ void construct_bunches (struct clusterlist **C, int k, struct aseq **A, struct b
 	return;
 }
 
-// TODO: return bunches?
+/**
+ * create_aseqs - constructing sets of vertices of A_0, ... A_k-1
+ * @A: the A sequences to fill in
+ * @k: k integer
+ * @graph: adjacency list rep. of graph
+ * @nodes: all n nodes and their attributes
+ *
+ * Constructs non increasing sequence of sets A_0 ⊇ A_1 ⊇ ... ⊇ A_k−1, A_k = Ø
+ * Begins with A_0 = V and iterates then 1 <= i < k. Each node in A_i-1 is tested
+ * with n^-1/k probability whether it is obtained in A_i. Vertices in an A_i set
+ * are also called i-centers
+ */
+bool create_aseqs (struct aseq **A, int k, struct graph *graph, struct node *nodes)
+{
+	int seqsizes[k];
+	int *tmp = malloc (graph->V * sizeof(int));
+	// A_k <- Ø
+	A[k] = NULL;
+
+	// A_0 <- V. Running time O(n)
+	A[0] = malloc (sizeof (struct aseq));
+	A[0]->nodes = malloc (graph->V * sizeof(struct node));
+	A[0]->added = calloc (graph->V, sizeof(int));
+	for (unsigned int i = 0; i < graph->V; i++) {
+		memcpy (&A[0]->nodes[i], &nodes[i], sizeof(struct node));
+		A[0]->added[i] = 1;
+	}
+
+	A[0]->seqsize = graph->V;
+	seqsizes[0] = graph->V;
+	// Set the seed
+	srand((unsigned)time(NULL));
+
+	for (int i = 1; i <= k-1; i++) {
+		A[i] = malloc (sizeof (struct aseq));
+		A[i]->added = calloc (graph->V, sizeof(int));
+		seqsizes[i] = 0;
+		for (int j = 0; j < seqsizes[i-1]; j++) {
+			// Generates 0.0 - 1.0
+			double rnd = (double)rand()/RAND_MAX;
+			// Check random number is <= n^{-1/k}
+			if (rnd <= pow (graph->V, -1.0/(double)k)) {
+				int v_id = A[i-1]->nodes[j].v_id;
+				tmp[seqsizes[i]] = v_id;
+				A[i]->added[v_id] = 1;
+				seqsizes[i] += 1;
+			}
+		}
+
+		if (seqsizes[i] == 0)
+			return false;
+
+		A[i]->seqsize = seqsizes[i];
+		A[i]->nodes = malloc (seqsizes[i] * sizeof(struct node));
+		for (int l = 0; l < seqsizes[i]; l++) {
+			memcpy (&A[i]->nodes[l], &nodes[tmp[l]], sizeof (struct node));
+		}
+	}
+
+	free (tmp);
+
+	return true;
+}
+
 // Should have at most time complexity O(kn^{1+1/k})
 struct prepro *prepro (struct graph *graph, int k)
 {
 	unsigned int n = graph->V;
 	int val = (int) INFINITY;
-	struct node nodes[n];
+	bool empty;
+	struct node *nodes = malloc (n * sizeof (struct node));
 	// k+1, for the kth set where d(A_k, v) = infinity for all v in V
 	struct node *dist[k+1];
 	// For each v the pivot node to each i, thus v*k
@@ -412,6 +365,7 @@ struct prepro *prepro (struct graph *graph, int k)
 
 	bunchlist->num_bunches = n;
 	bunchlist->bunches = malloc (bunchlist->num_bunches * sizeof(struct bunch));
+
 	// saving all v in V in array nodes and Preparing for constructing the bunches
 	for (unsigned int i = 0; i < n; i++) {
 		memcpy (&nodes[i], add_node (i, val, i), sizeof (struct node));
@@ -423,35 +377,30 @@ struct prepro *prepro (struct graph *graph, int k)
 	}
 
 	// Creating all A_i sequences
-	create_aseqs (A, k, graph, nodes);
+	empty = create_aseqs (A, k, graph, nodes);
+	// Empty set, thus d(A_i, v) = infinity (thus NULL array) */
+	// also, since A_{k-1} = Ø, rerun!
+	if (!empty) {
+		printf ("\nA_{k-1} == Ø, empty set.");
+		printf (" Hence, re-running the preprocessing algorithm in 3 seconds!\n");
+		prepro->nodes = NULL;
+		prepro->bunchlist = NULL;
+		prepro->success = false;
+		sleep (3);
+		return prepro;
+	}
 
 	#ifdef DEBUG
 	pp_aseqs (A, k);
 	#endif
-	// initialising the heap
-	heap = initialise_single_source_tz (graph);
 
 	// d(A_k, v) = infinity, thus NULL
 	dist[k] = NULL;
+	// initialising the heap
+	heap = initialise_single_source_tz (graph);
 
 	// k iterations
 	for (int i = k-1; i >= 0; i--) {
-
-		if (i == k-1 && A[i]->seqsize == 0) {
-			printf ("\nA_{k-1} == Ø, hence an empty set. Rerunning the prepro algorithm!\n");
-			prepro->nodes = NULL;
-			prepro->bunchlist = NULL;
-			prepro->success = false;
-			sleep (3);
-			return prepro;
-		}
-		else if (A[i]->seqsize == 0) {
-			// Empty set, thus d(A_i, v) = infinity (thus NULL array)
-			dist[i] = NULL;
-			// p_i (v) undefined.
-			memset(&pivot_nodes[i], 0, sizeof(pivot_nodes[i]));
-			continue;
-		}
 		// copy of heap to work with for current i
 		struct heap *write_heap = copy_heap_struct (heap);
 		// copy of graph to work with for current i
@@ -463,13 +412,16 @@ struct prepro *prepro (struct graph *graph, int k)
 		write_graph->V += 1;
 		n = write_graph->V;
 
+		#ifdef DEBUG
+		pp_graph (write_graph);
+		#endif
+
 		// compute d(A_i, v), running dijkstra once for each i
 		struct node *sps = dijkstra_alg_tz (write_graph, write_heap);
 		dist[i] = sps;
 
 		#ifdef DEBUG
-		pp_graph (write_graph);
-		printf ("prepro dijkstra result for i=%d:\n", i);
+		printf ("prepro dijkstra result for i=%d\n", i);
 		pp_nodes (dist[i], n);
 		#endif
 
@@ -485,7 +437,7 @@ struct prepro *prepro (struct graph *graph, int k)
 		}
 
 		#ifdef DEBUG
-		pp_pivots (pivot_arr, nodes, n);
+		pp_pivots (pivot_arr, nodes, n, i);
 		#endif
 
 		memcpy (&pivot_nodes[i], &pivot_arr, sizeof (struct node*));
@@ -507,109 +459,46 @@ struct prepro *prepro (struct graph *graph, int k)
 	prepro->bunchlist = malloc (sizeof (struct bunchlist));
 	prepro->bunchlist = bunchlist;
 	prepro->success = true;
-	printf ("***** prepro done ******\n");
+	printf ("***** preprocessing done ******\n");
 	return prepro;
 }
 
-void test_prepro ()
+// u and v are the two vertices whose distance is to be estimated.
+// If w in B(v) it returns d(w, u) + d(w, v). The distance d(w, u) = d(p_i(u), u) is
+// read directly from the data structure constructed in prepro. Also, d(w, v) = d(v, w)
+// at most k accesses as w in A_{k-1} and A_{k-1} \subseteq for every v in V
+int distk (struct node *u, struct node *v, struct bunchlist *bunchlist)
 {
-	struct graph* graph_3 = init_graph (5);
-	add_edges (graph_3, 0, 1, 10);
-	add_edges (graph_3, 0, 2, 5);
-	add_edges (graph_3, 0, 4, 7);
-	add_edges (graph_3, 1, 2, 2);
-	add_edges (graph_3, 1, 3, 1);
-	add_edges (graph_3, 2, 3, 9);
-	add_edges (graph_3, 2, 4, 2);
-	add_edges (graph_3, 3, 4, 4);
-	int k = 3;
-	struct prepro *pp = malloc (sizeof (struct prepro));
-	pp->success = false;
-	while (!pp->success) {
-		pp = prepro (graph_3, k);
-	}
-	int u = 1;
-	int v = 2;
-	int d = distk (&pp->nodes[u], &pp->nodes[v], pp->bunchlist);
-	printf ("result of call dist(%d, %d) = %d\n", u, v, d);
-}
+	struct node	w;
+	int i = 0;
+	int dist = 0;
 
-// Hardcoded tests from various sources
-void hardcoded_tests ()
-{
-	// From the author
-	struct graph* graph_1 = init_graph (5);
-	add_edges (graph_1, 0, 1, 3);
-	add_edges (graph_1, 0, 2, 5);
-	add_edges (graph_1, 1, 2, 1);
-	add_edges (graph_1, 2, 3, 10);
-	add_edges (graph_1, 3, 4, 2);
-	pp_graph (graph_1);
-	struct node *S_1 = dijkstra_alg (graph_1, 0);
-	pp_nodes (S_1, 5);
+	// w = u = p_0(u)
+	w = *u;
 
-	printf ("------------------------\n");
-	// From: http://www.geeksforgeeks.org/greedy-algorithms-set-7-dijkstras-algorithm-for-adjacency-list-representation/
-	struct graph* graph = init_graph (9);
-	add_edges(graph, 0, 1, 4);
-	add_edges(graph, 0, 7, 8);
-	add_edges(graph, 1, 2, 8);
-	add_edges(graph, 1, 7, 11);
-	add_edges(graph, 2, 3, 7);
-	add_edges(graph, 2, 8, 2);
-	add_edges(graph, 2, 5, 4);
-	add_edges(graph, 3, 4, 9);
-	add_edges(graph, 3, 5, 14);
-	add_edges(graph, 4, 5, 10);
-	add_edges(graph, 5, 6, 2);
-	add_edges(graph, 6, 7, 1);
-	add_edges(graph, 6, 8, 6);
-	add_edges(graph, 7, 8, 7);
-	pp_graph (graph);
-	struct node *S_2 = dijkstra_alg (graph, 0);
-	pp_nodes (S_2, 9);
-
-	printf ("------------------------\n");
-	// From CLRS p. 659 (though it is directed)
-	struct graph* graph_3 = init_graph (5);
-	add_edges (graph_3, 0, 1, 10);
-	add_edges (graph_3, 0, 2, 5);
-	add_edges (graph_3, 0, 4, 7);
-	add_edges (graph_3, 1, 2, 2);
-	add_edges (graph_3, 1, 3, 1);
-	add_edges (graph_3, 2, 3, 9);
-	add_edges (graph_3, 2, 4, 2);
-	add_edges (graph_3, 3, 4, 4);
-	pp_graph (graph_3);
-	struct node *S_3 = dijkstra_alg (graph_3, 0);
-	pp_nodes (S_3, 5);
-}
-
-void run (const char *fname_read, const char *fname_write)
-{
-	int V = count_vertices (fname_read);
-	struct graph *graph = init_graph (V);
-	read_from_file (graph, fname_read);
-	struct node *S = dijkstra_alg (graph, 1);
-	write_to_csv (fname_write, S, V);
-}
-
-int main (int argc, char *argv[])
-{
-	argv = argv;
-	if (argc < 3 || (argc % 2 != 1)) {
-		printf ("No input and output arguments or input/output does not match!\n");
-		return EXIT_FAILURE;
+	// while w not in B(v)
+	while (1) {
+		struct node *out, tmp;
+		printf ("dist: B(%d) w_id:%d\n", v->v_id, w.v_id);
+		// checking if w in B(v), where nodes are vertices w in V
+		HASH_FIND_INT(bunchlist->bunches[v->v_id].nodes, &w.v_id, out);
+		if (out) {
+			// if w in B(v), break loop
+			dist = out->sp_est;
+			break;
+		} else {
+			printf ("i=%d\n", i);
+			// i <- i + 1
+			i += 1;
+			// (u, v) <- (v, u)
+			tmp = *u;
+			u = v;
+			v = &tmp;
+			// w <- p_i (u)
+			w = bunchlist->bunches[u->v_id].piv[i];
+			printf ("w_id:%d, sp:%d u_id:%d v_id:%d\n", w.v_id, w.sp_est, u->v_id, v->v_id);
+		}
 	}
 
-	/* for (int i = 1; i < argc; i++) { */
-	/* 	const char *fname_read = argv[1]; */
-	/* 	const char *fname_write = argv[2]; */
-	/* 	run (fname_read, fname_write); */
-	/* }; */
-
-	test_prepro ();
-	/* hardcoded_tests (); */
-
-	return EXIT_SUCCESS;
+	return dist;
 }

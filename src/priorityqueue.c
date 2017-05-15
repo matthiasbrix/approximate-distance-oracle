@@ -115,6 +115,10 @@ void decrease_key (struct heap *heap, struct node *v, struct node *u, int sp_est
 	v->pi = u;
 	int i = v->index;
 
+	#ifdef DEBUG
+	printf ("decrease: %d %d %d %d\n", u->v_id+1, v->v_id+1, i, v->sp_est);
+	#endif
+
 	if (v->sp_est > heap->nodes[i]->sp_est) {
 		printf ("Error (%d) with decreasing node vertex:%d, spest:%d\n", KEY_SIZE, v->v_id, v->sp_est);
 		return;
@@ -152,7 +156,7 @@ void pp_heap (struct heap *hp)
 	printf ("\nPRINT HEAP NODES\n");
 	printf ("SPEST ID INDEX\n");
 	for (int i = 0; i < hp->heap_size; i++) {
-		printf ("%d %d %d \n", hp->nodes[i]->sp_est, hp->nodes[i]->v_id, hp->nodes[i]->index);
+		printf ("%d %d %d \n", hp->nodes[i]->sp_est, hp->nodes[i]->v_id+1, hp->nodes[i]->index);
 	}
 	printf ("\n");
 	return;

@@ -5,25 +5,26 @@ FILE *file;
 void read_from_file (struct graph *graph, const char *fname)
 {
 	char t;
-	int u, v, w;
+	int u, v, w, i;
 
-	int i = 0;
+	i = 0;
 	file = fopen (fname, "r");
 
 	if (file == NULL)
 		exit (EXIT_FAILURE);
 
-	while(!feof(file)) {
+	while (!feof(file)) {
 		int no_match = fscanf (file, "%c %d %d %d\n", &t, &u, &v, &w);
 		if (no_match == 4 && (i % 2) == 0 && t == 'a') {
-			add_edges (graph, u, v, w);
+			// Because we assume 1 indexing, subtract 1
+			add_edges (graph, u-offset, v-offset, w);
 		}
 		i++;
 	}
 
 	if (fclose(file)) {
-		printf("error closing file.");
-		exit(-1);
+		printf("Error closing file.");
+		exit (EXIT_FAILURE);
 	}
 
 	return;
@@ -31,10 +32,12 @@ void read_from_file (struct graph *graph, const char *fname)
 
 int count_vertices (const char *fname)
 {
-	FILE *file = fopen (fname, "r");
+	file = fopen (fname, "r");
 	char t;
-	int u, v, w;
-	int i = 0, count = 0;
+	int u, v, w, i, count;
+
+	i = 0;
+	count = 0;
 
 	if (file == NULL)
 		exit (EXIT_FAILURE);
@@ -47,6 +50,12 @@ int count_vertices (const char *fname)
 		}
 		i++;
 	}
+
+	if (fclose(file)) {
+		printf("Error closing file in count_vertices.");
+		exit (EXIT_FAILURE);
+	}
+
 	return count;
 }
 
@@ -59,11 +68,11 @@ void write_to_csv (const char *fname, struct node *S, int i)
 
 	fprintf (fp, "%s,%s,%s\n", "vertex id", "shortest path", "predecessor");
 
-	for (int j = 1; j < i; j++) {
+	for (int j = 0; j < i; j++) {
 		if (S[j].pi == NULL) {
-			fprintf(fp, "%d,%d,%s\n", S[j].v_id, S[j].sp_est, "NULL");
+			fprintf(fp, "%d,%d,%s\n", S[j].v_id+offset, S[j].sp_est, "NULL");
 		} else {
-			fprintf(fp, "%d,%d,%d\n", S[j].v_id, S[j].sp_est, S[j].pi->v_id);
+			fprintf(fp, "%d,%d,%d\n", S[j].v_id+offset, S[j].sp_est, S[j].pi->v_id+offset);
 		}
 	}
 

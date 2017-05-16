@@ -1,0 +1,28 @@
+Time spent on prepro Thorup-Zwick: 88.012333
+B(1000) w_id:100
+i=0
+w_id:1, sp:0 u_id:1000 v_id:100
+B(100) w_id:1
+i=1
+w_id:4810, sp:6014 u_id:100 v_id:1000
+B(1000) w_id:4810
+i=2
+w_id:1406, sp:1076 u_id:1000 v_id:100
+B(100) w_id:1406
+i=3
+w_id:1406, sp:8260 u_id:100 v_id:1000
+B(1000) w_id:1406
+i=4
+w_id:1406, sp:20044 u_id:1000 v_id:100
+B(100) w_id:1406
+i=5
+w_id:2504, sp:83680 u_id:100 v_id:1000
+B(1000) w_id:2504
+
+Result of Thorup-Zwick dist(100, 1000) = 22965
+Time spent on query Thorup-Zwick: 0.000133
+Memory usage = 5263896 KB
+
+Result of Dijkstra SSP (100, 1000) = 88253
+Time spent on running Dijkstra: 0.310788
+Memory usage = 5263896 KB

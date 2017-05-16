@@ -2,9 +2,25 @@
 #define FILEHANDLING_H
 
 #include "graph.h"
+#include <time.h>
+
+struct tz_res {
+  int dist;
+  int k;
+  double prepro_time;
+  double dist_time;
+  unsigned long memory_consump;
+};
+
+struct dijkstra_res {
+  int dist;
+  double dist_time;
+  unsigned long memory_consump;
+};
 
 void read_from_file (struct graph *graph, const char *fname);
-void write_to_csv (const char *fname, struct node *S, int i);
+void write_to_file (const char *fname, const char *input_file, int u, int v,
+                    struct tz_res *tz, struct dijkstra_res *dijkstra);
 int count_vertices (const char *fname);
 
 #endif

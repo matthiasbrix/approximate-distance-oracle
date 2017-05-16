@@ -15,6 +15,8 @@
 #define RCHILD(x) MULTBY2(x) + 2
 #define PARENT(x) (x - 1) / 2
 
+extern int offset;
+
 // TODO: sp_est should be unsigned int
 struct node {
   int v_id;

@@ -1,63 +1,56 @@
 #!/bin/bash
 
 EXE=main
-DEBUG="n"
-TESTFILE=''
+DEBUG='n'
+INPUTFILE=''
 OUTPUTFILE=''
-K_INT=-1
-U_INT=-1
-V_INT=-1
+KINT=-1
+UINT=-1
+VINT=-1
 
-for i in "$@"
+while getopts i:o:k:u:v:d: option
 do
-case $i in
-    -d=*|--debug=*)
-    DEBUG="${i#*=}"
-    ;;
-    -i=*|--input=*)
-    TESTFILE="${i#*=}"
-    ;;
-    -o=*|--output=*)
-    OUTPUTFILE="${o#*=}"
-    ;;
-    -k=*|--kint=*)
-    K_INT="${k#*=}"
-    ;;
-    -u=*|--uint=*)
-    U_INT="${u#*=}"
-    ;;
-    -v=*|--vint=*)
-    V_INT="${v#*=}"
-    ;;
-    --default)
-    DEFAULT="ERROR"
-    ;;
-    *)
-    # unknown option
-    ;;
-esac
+ case "${option}"
+ in
+     i) INPUTFILE=${OPTARG};;
+     o) OUTPUTFILE=${OPTARG};;
+     k) KINT=${OPTARG};;
+     u) UINT=${OPTARG};;
+     v) VINT=${OPTARG};;
+     d) DEBUG=${OPTARG};;
+ esac
 done
 
 make clean
 make all
 
-FILENAME=$OUTPUTFILE-"k=$K_INT"-"u=$U_INT"-"v=$U_INT"
-if [ $DEBUG == "y" ] 
-then
-	./bin/$EXE
-elif [[ -r $TESTFILE && $OUTPUTFILE && $K_INT -gt 0 && $U_INT -gt 0 && V_INT -gt 0 ]]; 
-then
-	./bin/$EXE tests/TESTFILE.txt $OUTPUTFILE.csv $K_INT $U_INT $V_INT
-else
-	echo "Something went wrong!"
-fi
+# Chop of "/" from tests/file
+for (( i=0; i<${#INPUTFILE}; i++ )); do
+    if [ "${INPUTFILE:$i:1}" == "/" ]
+    then
+        break
+    fi 
+done
+# The new file included in final print file
+NEWINPUTFILE=${INPUTFILE:i+1}
 
-if [[ -e $FILENAME.csv && $DEBUG == "n" ]] ; then
-	i=0
-    while [[ -e $i-$FILENAME.csv ]] ; do
+name=""
+
+if [ $DEBUG = 'y' ]; then
+    ./bin/$EXE > debug
+    exit 0
+elif [[ -r $INPUTFILE && $KINT -gt 0 && $UINT -gt 0 && $VINT -gt 0 ]]; then
+    FILENAME=$NEWINPUTFILE-"k=$KINT"-"u=$UINT"-"v=$UINT"
+    # Find out which num. of occurence it is
+    i=0
+    while [[ -e benchmarks/$i-$FILENAME.txt ]] ; do
         let i++
     done
-    name=$i-$FILENAME
+    name=$i-$FILENAME.txt
+    ./bin/$EXE $INPUTFILE $OUTPUTFILE $KINT $UINT $VINT > $name
+else
+    echo "Something went wrong!"
 fi
-touch "$FILENAME".csv
-mv $FILENAME.csv benchmarks
+
+mv $name benchmarks
+

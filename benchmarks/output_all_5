@@ -1,0 +1,15 @@
+***** preprocessing done ******
+dist: B(100) w_id:5
+i=0
+w_id:0, sp:0 u_id:100 v_id:5
+dist: B(5) w_id:0
+i=1
+w_id:0, sp:0 u_id:100 v_id:100
+dist: B(100) w_id:0
+i=2
+w_id:100, sp:0 u_id:100 v_id:100
+dist: B(100) w_id:100
+result of call dist(5, 100) = 0
+Time spent on running Thorup-Zwick: 88.693030
+result of dijkstra ssp (5, 100) = 128558
+Time spent on dijkstra: 0.965798

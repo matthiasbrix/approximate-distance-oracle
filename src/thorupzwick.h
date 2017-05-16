@@ -42,9 +42,10 @@ struct prepro {
   struct node *nodes;
   struct bunchlist *bunchlist;
   bool success;
+  int k;
 };
 
 struct prepro *prepro (struct graph *graph, int k);
-int distk (struct node *u, struct node *v, struct bunchlist *bunchlist);
+int dist (struct node *u, struct node *v, struct bunchlist *bunchlist);
 
 #endif

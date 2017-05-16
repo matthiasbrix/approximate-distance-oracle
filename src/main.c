@@ -5,7 +5,7 @@ int offset;
 
 // TODO: gdb:gcc -g -o prog myfile.c another.c
 // gdb prog
-
+// Skelne mellme køretiden af prepro og dist, samt pladsforbrug
 // VIGTIGT: Kør tz og dijkstra begge med samme (u, v) og så sammenlign sp res, køretid og plads forbrug
 //
 /*
@@ -45,92 +45,75 @@ Fx. tænk på sleep - CPUen arbejder så ikke, således vil den ikke tælle det 
 // Bunche gen. er som DFS? (spørg ellers Christian)
 // Skriv til uthash om hash funktioner
 // hvilke eksperimenter og hvorfor. Vis så resultater.
+// TODO: SKal jeg genindlæs grafen når jeg kører dijkstra? Skal jeg overhovedet måle indlæsningen af knuderne?
+// Skriv i rapporten hvad der sker når grafen ikke er sammenhængende...
 
-void change_stack_size ()
+struct dijkstra_res *run_dijkstra (const char *fname_read, int u, int v)
 {
-	// Setting the stack size from 8MB to 64 MB
-	const rlim_t stack_size = 64L * 1024L * 1024L;
-	struct rlimit rl;
-	int result;
-
-	result = getrlimit (RLIMIT_STACK, &rl);
-
-	if (result == 0) {
-		printf ("current stack size: %zu KB\n", rl.rlim_cur);
-		if (rl.rlim_cur < stack_size) {
-			rl.rlim_cur = stack_size;
-			result = setrlimit(RLIMIT_STACK, &rl);
-			if (result != 0) {
-				fprintf (stderr, "setrlimit returned result = %d\n", result);
-			}
-		}
-	}
-
-}
-
-void test_prepro ()
-{
-	int n = 5;
-	struct graph* graph = init_graph (n);
-	int w[8] = { 10, 5, 7, 2, 1, 9, 2, 4};
-
-	for (int i = 0; i < 8; i += 8) {
-		add_edges (graph, 0, 1, w[i]);
-		add_edges (graph, 0, 2, w[i+1]);
-		add_edges (graph, 0, 4, w[i+2]);
-		add_edges (graph, 1, 2, w[i+3]);
-		add_edges (graph, 1, 3, w[i+4]);
-		add_edges (graph, 2, 3, w[i+5]);
-		add_edges (graph, 2, 4, w[i+6]);
-		add_edges (graph, 3, 4, w[i+7]);
-	}
-
-	int k = 3;
-	struct prepro *pp = malloc (sizeof (struct prepro));
-	pp->success = false;
-	while (!pp->success) {
-		pp = prepro (graph, k);
-	}
-	int u = 1;
-	int v = 2;
-	int d = distk (&pp->nodes[u], &pp->nodes[v], pp->bunchlist);
-	printf ("result of call dist(%d, %d) = %d\n", u, v, d);
-}
-
-void run_dijkstra (const char *fname_read, const char *fname_write, int u, int v)
-{
-	fname_write = fname_write;
-	int V = count_vertices (fname_read);
-	struct graph *graph = malloc (sizeof (struct graph));
-	graph =	init_graph (V);
-	read_from_file (graph, fname_read);
-	struct node *S = dijkstra_alg (graph, u);
-	// Find ud af afstanden mellem u og v ud fra S
-	v = v;
-	write_to_csv (fname_write, S, V);
-}
-
-void run_tz (const char *fname_read, const char *fname_write, int k, int u, int v)
-{
-	fname_write = fname_write;
+	struct dijkstra_res *dijkstra = malloc (sizeof (struct dijkstra_res));
+	struct rusage r_usage;
 	int n = count_vertices (fname_read);
 	struct graph *graph = malloc (sizeof (struct graph));
 	graph =	init_graph (n);
 	read_from_file (graph, fname_read);
+	clock_t begin = clock();
+	struct node *S = dijkstra_alg (graph, u-offset);
+	clock_t end = clock();
+	double cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+	getrusage (RUSAGE_SELF, &r_usage);
+	printf ("\nResult of Dijkstra SSP (%d, %d) = %d\n", u, v, S[v-offset].sp_est);
+	printf ("Time spent on running Dijkstra: %f\n", cpu_time_spent);
+	printf ("Memory usage = %ld KB\n", r_usage.ru_maxrss);
+	dijkstra->dist = S[v-offset].sp_est;
+	dijkstra->dist_time = cpu_time_spent;
+	dijkstra->memory_consump = r_usage.ru_maxrss;
+
+	return dijkstra;
+}
+
+// TODO: Reset memory usage to 0 after prepro
+
+struct tz_res *run_tz (const char *fname_read, int k, int u, int v)
+{
+	struct tz_res *tz = malloc (sizeof (struct tz_res));
+	clock_t begin, end;
+	double cpu_time_spent;
+	struct rusage r_usage;
+	int n = count_vertices (fname_read);
+	struct graph *graph = malloc (sizeof (struct graph));
+	graph =	init_graph (n);
+	read_from_file (graph, fname_read);
+
+	begin = clock();
 	struct prepro *pp = malloc (sizeof (struct prepro));
 	pp->success = false;
 	while (!pp->success) {
 		pp = prepro (graph, k);
 	}
-	int d = distk (&pp->nodes[u], &pp->nodes[v], pp->bunchlist);
-	printf ("result of call dist(%d, %d) = %d\n", u, v, d);
-	dijkstra_alg (graph, u);
+	end = clock();
+	cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+	printf ("Time spent on prepro Thorup-Zwick: %f\n", cpu_time_spent);
+	tz->prepro_time = cpu_time_spent;
+
+	begin = clock();
+	int d = dist (&pp->nodes[u-offset], &pp->nodes[v-offset], pp->bunchlist);
+	end = clock();
+	cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+	getrusage (RUSAGE_SELF, &r_usage);
+	printf ("\nResult of Thorup-Zwick dist(%d, %d) = %d\n", u, v, d);
+	printf ("Time spent on query Thorup-Zwick: %f\n", cpu_time_spent);
+	printf ("Memory usage = %ld KB\n", r_usage.ru_maxrss);
+
+	tz->dist = d;
+	tz->k = k;
+	tz->dist_time = cpu_time_spent;
+	tz->memory_consump = r_usage.ru_maxrss;
+
+	return tz;
 }
 
 int main (int argc, char *argv[])
 {
-	clock_t begin = clock();
-
 	if (argc == 1) {
 		offset = 0;
 		test_prepro ();
@@ -147,13 +130,11 @@ int main (int argc, char *argv[])
 			int k = atoi(argv[i+2]);
 			int u = atoi(argv[i+3]);
 			int v = atoi(argv[i+4]);
-			run_tz (fname_read, fname_write, k, u, v);
+			struct tz_res *tz = run_tz (fname_read, k, u, v);
+			struct dijkstra_res *dijkstra = run_dijkstra (fname_read, u, v);
+			write_to_file (fname_write, fname_read, u, v, tz, dijkstra);
 		};
 	}
-
-	clock_t end = clock();
-	double cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-	printf ("Time spent on running the program: %f\n", cpu_time_spent);
 
 	return EXIT_SUCCESS;
 }

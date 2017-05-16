@@ -156,7 +156,7 @@ void pp_heap (struct heap *hp)
 	printf ("\nPRINT HEAP NODES\n");
 	printf ("SPEST ID INDEX\n");
 	for (int i = 0; i < hp->heap_size; i++) {
-		printf ("%d %d %d \n", hp->nodes[i]->sp_est, hp->nodes[i]->v_id+1, hp->nodes[i]->index);
+		printf ("%d %d %d \n", hp->nodes[i]->sp_est, hp->nodes[i]->v_id+offset, hp->nodes[i]->index);
 	}
 	printf ("\n");
 	return;

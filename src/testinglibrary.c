@@ -1,48 +1,56 @@
 #include "testinglibrary.h"
 
-/* key: pointer to the key data, keylen is length of key data,
-   hashv is an unsigned integer that you need to fill in with the
-   answer
- */
-// Skriv hvis den er uniformly (det er den)
-// -DHASH_FUNCTION=HASH_THORUPZWICK
-#define HASH_THORUPZWICK(key,keylen,hashv)           \
-do {                                                 \
-	srand((unsigned)time(NULL));                     \
-	for (_ho_i=0; _ho_i < keylen; _ho_i++) {         \
-	  uint32_t a = (rand()|1);					     \
-	  int l = ((rand() % ((33 - 0 + 0 % 2) >> 1)     \
-		  + ((0 - 0 % 2) >> 1)) << 1) + 1;           \
-	  (hashv) = (a*key) >> (32-l);					 \
-	}                                                \
-} while (0)
-
-// O(n)
-struct heap *initialise_single_source (struct graph *graph, int s)
+void test_prepro ()
 {
-	struct heap *heap = malloc (sizeof (struct heap));
-	heap->nodes = malloc(graph->V * sizeof(struct node*));
+	struct rusage r_usage;
+	int k, n, u, v, d;
+	double cpu_time_spent;
+	k = 3, n = 5, u = 1, v = 4;
+	struct graph* graph = init_graph (n);
+	int w[8] = { 10, 5, 7, 2, 1, 9, 2, 4 };
 
-	if (heap == NULL || heap->nodes == NULL) {
-		printf ("Pointer error of heap\n");
-		return NULL;
+	for (int i = 0; i < 8; i += 8) {
+		add_edges (graph, 0, 1, w[i]);
+		add_edges (graph, 0, 2, w[i+1]);
+		add_edges (graph, 0, 4, w[i+2]);
+		add_edges (graph, 1, 2, w[i+3]);
+		add_edges (graph, 1, 3, w[i+4]);
+		add_edges (graph, 2, 3, w[i+5]);
+		add_edges (graph, 2, 4, w[i+6]);
+		add_edges (graph, 3, 4, w[i+7]);
 	}
 
-	int val = (int) INFINITY;
-
-	for (unsigned int i = 0; i < graph->V; i++) {
-		struct node *tmp = add_node (i, val, i);
-		heap->nodes[i] = tmp;
-		memcpy (&graph->adjlists[i].nd, &heap->nodes[i], sizeof (struct node*));
+	clock_t begin = clock();
+	struct prepro *pp = malloc (sizeof (struct prepro));
+	pp->success = false;
+	while (!pp->success) {
+		pp = prepro (graph, k);
 	}
+	clock_t end = clock();
+	cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+	printf ("Time spent on prepro Thorup-Zwick: %f\n", cpu_time_spent);
+	getrusage (RUSAGE_SELF, &r_usage);
+	printf ("Memory usage of prepro = %ld KB\n", r_usage.ru_maxrss);
 
-	heap->heap_size = graph->V;
-	struct node *v = graph->adjlists[s].nd;
-	heap->nodes[v->v_id]->sp_est = 0;
+	struct rusage r_usage2;
+	clock_t begin2 = clock();
+	d = dist (&pp->nodes[u], &pp->nodes[v], pp->bunchlist);
+	clock_t end2 = clock();
+	cpu_time_spent = (double)(end2 - begin2) / CLOCKS_PER_SEC;
+	getrusage (RUSAGE_SELF, &r_usage2);
+	printf ("Time spent on query Thorup-Zwick: %f\n", cpu_time_spent);
+	printf ("Result of Thorup-Zwick dist (%d, %d) = %d\n", u, v, d);
+	printf ("Memory usage of dist = %ld KB\n", r_usage2.ru_maxrss);
 
-	find_node_pos (heap, v->v_id);
-
-	return heap;
+	struct rusage r_usage3;
+	clock_t begin3 = clock();
+	struct node *S = dijkstra_alg (graph, u);
+	clock_t end3 = clock();
+	cpu_time_spent = (double)(end3 - begin3) / CLOCKS_PER_SEC;
+	getrusage (RUSAGE_SELF, &r_usage3);
+	printf ("Result of Dijkstra SSP (%d, %d) = %d\n", u, v, S[v-offset].sp_est);
+	printf ("Time spent on running Dijkstra: %f\n", cpu_time_spent);
+	printf ("Memory usage of dijkstra = %ld KB\n", r_usage2.ru_maxrss);
 }
 
 // Hardcoded tests from various sources
@@ -96,15 +104,41 @@ void hardcoded_tests ()
 	pp_nodes (S_3, 5);
 }
 
+// O(n)
+struct heap *initialise_single_source (struct graph *graph, int s)
+{
+	struct heap *heap = malloc (sizeof (struct heap));
+	heap->nodes = malloc(graph->V * sizeof(struct node*));
+
+	if (heap == NULL || heap->nodes == NULL) {
+		printf ("Pointer error of heap\n");
+		return NULL;
+	}
+
+	int val = (int) INFINITY;
+
+	for (unsigned int i = 0; i < graph->V; i++) {
+		struct node *tmp = add_node (i, val, i);
+		heap->nodes[i] = tmp;
+		memcpy (&graph->adjlists[i].nd, &heap->nodes[i], sizeof (struct node*));
+	}
+
+	heap->heap_size = graph->V;
+	struct node *v = graph->adjlists[s].nd;
+	heap->nodes[v->v_id]->sp_est = 0;
+	find_node_pos (heap, v->v_id);
+
+	return heap;
+}
+
 // O((m + n) lg n)
 struct node* dijkstra_alg (struct graph *graph, int s)
 {
 	struct heap *Q = initialise_single_source (graph, s);
 	struct node *S = malloc (Q->heap_size * sizeof (struct node));
-	int i = 0;
 	while (Q->heap_size != 0) {
 		struct node *u = extract_min (Q);
-		memcpy (&S[i], u, sizeof (struct node));
+		memcpy (&S[u->v_id], u, sizeof (struct node));
 		for (struct adjlistnode *s = graph->adjlists[u->v_id].head;
 			 s != NULL; s = s->next) {
 			struct node *v = graph->adjlists[s->v_id].nd;
@@ -114,9 +148,6 @@ struct node* dijkstra_alg (struct graph *graph, int s)
 			}
 		}
 		graph->adjlists[u->v_id].nd = NULL;
-		i += 1;
 	}
 	return S;
 }
-
-

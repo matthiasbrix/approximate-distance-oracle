@@ -7,25 +7,25 @@ void test_prepro ()
 	double cpu_time_spent;
 	k = 3, n = 5, u = 1, v = 4;
 	struct graph* graph = init_graph (n);
-	int w[8] = { 10, 5, 7, 2, 1, 9, 2, 4 };
 
-	for (int i = 0; i < 8; i += 8) {
-		add_edges (graph, 0, 1, w[i]);
-		add_edges (graph, 0, 2, w[i+1]);
-		add_edges (graph, 0, 4, w[i+2]);
-		add_edges (graph, 1, 2, w[i+3]);
-		add_edges (graph, 1, 3, w[i+4]);
-		add_edges (graph, 2, 3, w[i+5]);
-		add_edges (graph, 2, 4, w[i+6]);
-		add_edges (graph, 3, 4, w[i+7]);
-	}
+	add_edges (graph, 0, 1, 10);
+	add_edges (graph, 0, 2, 5);
+	add_edges (graph, 0, 4, 7);
+	add_edges (graph, 1, 2, 2);
+	add_edges (graph, 1, 3, 1);
+	add_edges (graph, 2, 3, 9);
+	add_edges (graph, 2, 4, 2);
+	add_edges (graph, 3, 4, 4);
 
 	clock_t begin = clock();
 	struct prepro *pp = malloc (sizeof (struct prepro));
 	pp->success = false;
+
 	while (!pp->success) {
 		pp = prepro (graph, k);
+		sleep (1);
 	}
+
 	clock_t end = clock();
 	cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
 	printf ("Time spent on prepro Thorup-Zwick: %f\n", cpu_time_spent);
@@ -41,6 +41,16 @@ void test_prepro ()
 	printf ("Time spent on query Thorup-Zwick: %f\n", cpu_time_spent);
 	printf ("Result of Thorup-Zwick dist (%d, %d) = %d\n", u, v, d);
 	printf ("Memory usage of dist = %ld KB\n", r_usage2.ru_maxrss);
+
+	graph = init_graph (n);
+	add_edges (graph, 0, 1, 10);
+	add_edges (graph, 0, 2, 5);
+	add_edges (graph, 0, 4, 7);
+	add_edges (graph, 1, 2, 2);
+	add_edges (graph, 1, 3, 1);
+	add_edges (graph, 2, 3, 9);
+	add_edges (graph, 2, 4, 2);
+	add_edges (graph, 3, 4, 4);
 
 	struct rusage r_usage3;
 	clock_t begin3 = clock();
@@ -132,7 +142,7 @@ struct heap *initialise_single_source (struct graph *graph, int s)
 }
 
 // O((m + n) lg n)
-struct node* dijkstra_alg (struct graph *graph, int s)
+struct node *dijkstra_alg (struct graph *graph, int s)
 {
 	struct heap *Q = initialise_single_source (graph, s);
 	struct node *S = malloc (Q->heap_size * sizeof (struct node));

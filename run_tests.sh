@@ -40,7 +40,7 @@ if [ $DEBUG = 'y' ]; then
     ./bin/$EXE > debug
     exit 0
 elif [[ -r $INPUTFILE && $KINT -gt 0 && $UINT -gt 0 && $VINT -gt 0 ]]; then
-    FILENAME=$NEWINPUTFILE-"k=$KINT"-"u=$UINT"-"v=$UINT"
+    FILENAME=$NEWINPUTFILE-"k=$KINT"-"u=$UINT"-"v=$VINT"
     # Find out which num. of occurence it is
     i=0
     while [[ -e benchmarks/$i-$FILENAME.txt ]] ; do

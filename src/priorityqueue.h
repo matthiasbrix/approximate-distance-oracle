@@ -9,7 +9,8 @@
 #define HEAP_UNDERFLOW (-1)
 #define KEY_SIZE (-2)
 
-#define FREE(x) free(x); x = NULL;
+#define FREE(x) if (x != NULL ) { free(x); x = NULL; } else { \
+                                  printf ("Free err\n"); exit (-1); }
 #define MULTBY2(x) (x << 1)
 #define LCHILD(x) MULTBY2(x) + 1
 #define RCHILD(x) MULTBY2(x) + 2
@@ -38,12 +39,12 @@ struct adjlistnode {
 };
 
 struct adjlist {
-  struct node* nd;
-  struct adjlistnode* head; // start of list
+  struct node *nd;
+  struct adjlistnode *head; // start of list
 };
 
 struct graph {
-  unsigned int V; // nNumber of vertices
+  unsigned int V; // =n, Number of vertices
   struct adjlist *adjlists;
 };
 
@@ -51,12 +52,12 @@ struct node *add_node(int id, int distance, int index);
 void swap_nodes (struct node **ptr1, struct node **ptr2);
 void min_heapify (struct heap *heap, unsigned int i);
 void build_min_heap (struct heap *heap);
-struct node* minimum (struct heap *heap);
-struct node* extract_min (struct heap *heap);
+struct node *minimum (struct heap *heap);
+struct node *extract_min (struct heap *heap);
 void min_heap_insert (struct heap *heap, int id, int distance, struct graph *graph);
 void pp_heap (struct heap *hp);
 void decrease_key (struct heap *heap, struct node *v, struct node *u, int sp_est);
-struct heap* copy_heap_struct (struct heap *old_heap);
+struct heap *copy_heap_struct (struct heap *old_heap);
 void find_node_pos (struct heap *heap, int u);
 void free_heap (struct heap *heap);
 

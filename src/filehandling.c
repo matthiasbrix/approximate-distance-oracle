@@ -60,7 +60,8 @@ int count_vertices (const char *fname)
 	return count;
 }
 
-void write_to_file (const char *fname, const char *input_file, int u, int v, struct tz_res *tz, struct dijkstra_res *dijkstra)
+void write_to_file (const char *fname, const char *input_file, int u, int v,
+					struct tz_res *tz, struct dijkstra_res *dijkstra)
 {
 	file = fopen (fname, "a+");
 
@@ -70,16 +71,19 @@ void write_to_file (const char *fname, const char *input_file, int u, int v, str
 	fseek (file, 0, SEEK_END);
 	unsigned long len = (unsigned long)ftell(file);
 	if (len == 0) {
-		fprintf (file, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n", "Time", "Input file", "Algorithm", "k integer",
-				 "vertex u", "vertex v", "d(u - v)",
+		fprintf (file, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n", "Time", "Input file",
+				 "Algorithm", "k integer", "vertex u", "vertex v", "d(u - v)",
 				 "prepro time (s)", "dist time (s)", "memory consumption (KB)");
 	}
+
 	time_t clk = time(NULL);
 	char *time = ctime(&clk);
 	time[strlen(time) - 1] = '\0';
-	fprintf (file, "%s,%s,%s,%d,%d,%d,%d,%f,%f,%ld\n", time, input_file, "Thorup-Zwick", tz->k, u, v, tz->dist,
+	fprintf (file, "\n%s,%s,%s,%d,%d,%d,%d,%f,%f,%ld\n", time,
+			 input_file, "Thorup-Zwick", tz->k, u, v, tz->dist,
 			 tz->prepro_time, tz->dist_time, tz->memory_consump);
-	fprintf (file, "%s,%s,%s,%s,%d,%d,%d,%s,%f,%ld\n\n", time, input_file, "Dijkstra", "", u, v, dijkstra->dist,
+	fprintf (file, "%s,%s,%s,%s,%d,%d,%d,%s,%f,%ld\n", time,
+			 input_file, "Dijkstra", "", u, v, dijkstra->dist,
 			 "", dijkstra->dist_time, dijkstra->memory_consump);
 
 	if (fclose(file)) {

@@ -35,20 +35,37 @@ void add_edges (struct graph *graph, int u, int v, unsigned int w)
 
 struct graph *copy_graph_struct (struct graph *old_graph, struct heap *heap)
 {
-	struct graph* new_graph = malloc (sizeof (struct graph));
-	new_graph->adjlists = malloc ((old_graph->V+1) * sizeof (struct adjlist));
-	// cpy all adjlists to write graph struct
-	for (unsigned int a = 0; a < old_graph->V; a++) {
-		memcpy (&new_graph->adjlists[a], &old_graph->adjlists[a], sizeof (struct adjlist));
-		memcpy (&new_graph->adjlists[a].nd, &heap->nodes[a], sizeof (struct node*));
+	struct graph *graph = init_graph (old_graph->V+1);
+	graph->V -= 1;
+	for (unsigned int i = 0; i < graph->V; i++) {
+		struct adjlistnode *node = old_graph->adjlists[i].head;
+		memcpy (&graph->adjlists[i].nd, &heap->nodes[i], sizeof (struct node*));
+		while (node) {
+			if ((int) i < node->v_id) {
+				add_edges (graph, i, node->v_id, node->weight);
+			}
+			node = node->next;
+		}
 	}
-	new_graph->V = old_graph->V;
-
-	return new_graph;
+	return graph;
 }
 
+/* struct graph *copy_graph_struct (struct graph *old_graph, struct heap *heap) */
+/* { */
+/* 	struct graph *new_graph = malloc (sizeof (struct graph)); */
+/* 	new_graph->adjlists = malloc ((old_graph->V+1) * sizeof (struct adjlist)); */
+/* 	// cpy all adjlists to write graph struct */
+/* 	for (unsigned int a = 0; a < old_graph->V; a++) { */
+/* 		memcpy (&new_graph->adjlists[a], &old_graph->adjlists[a], sizeof (struct adjlist)); */
+/* 		memcpy (&new_graph->adjlists[a].nd, &heap->nodes[a], sizeof (struct node*)); */
+/* 	} */
+/* 	new_graph->V = old_graph->V; */
+
+/* 	return new_graph; */
+/* } */
+
 // O(n)
-struct heap* initialise_single_source_tz (struct graph *graph)
+struct heap *initialise_single_source_tz (struct graph *graph)
 {
 	struct heap *heap = malloc (sizeof (struct heap));
 	// One extra slot for node s (later used for dijkstra)
@@ -97,19 +114,25 @@ struct node *dijkstra_alg_tz (struct graph *graph, struct heap *Q)
 
 void free_graph (struct graph *graph)
 {
-	free (graph);
-	graph = NULL;
+	for (int i = 0; i < (int) graph->V; i++) {
+		struct adjlistnode *node = graph->adjlists[i].head;
+		while (node) {
+			struct adjlistnode *tmp = node->next;
+			FREE (node);
+			node = tmp;
+		}
+	}
+	FREE (graph);
 }
 
-void pp_graph (struct graph* graph)
+void pp_graph (struct graph *graph)
 {
 	printf ("PRINT ADJLIST RESULTS\n");
-	// Skip first, which is not exist in DIMACS files
 	for (unsigned int i = 0; i < graph->V; i++) {
-		struct adjlistnode* node = graph->adjlists[i].head;
+		struct adjlistnode *node = graph->adjlists[i].head;
 		printf("vertex: %d", i+offset);
 		while (node) {
-			printf(" -> v:%i w:%d", node->v_id+offset,
+			printf(" -> v:%d w:%d", node->v_id+offset,
 				   node->weight);
 			node = node->next;
 		}

@@ -1,13 +1,11 @@
 CC = gcc
-CFLAGS =-Wall -Wextra -pedantic -std=gnu11 -DHASH_FUNCTION=HASH_THORUPZWICK
+CFLAGS =-Wall -Wextra -pedantic -std=gnu11
 
 BINDIR = bin
 SOURCEDIR = src
 TESTSDIR = tests
 
 .PHONY: clean
-
-run : ./run_tests.sh -i tests/USANY.txt -o output.csv -k 10 -u 100 -v 1000
 
 all : priorityqueue graph filehandling thorupzwick testinglibrary main
 

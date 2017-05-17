@@ -1,6 +1,6 @@
 #include "thorupzwick.h"
 
-#define DEBUG
+// #define DEBUG
 
 void pp_aseqs (struct aseq **A, int k)
 {
@@ -57,6 +57,7 @@ void pp_pivots (struct node *pivot_arr, struct node *nodes, unsigned int n, int 
  */
 // Skriv hvis den er uniformly (det er den)
 // -DHASH_FUNCTION=HASH_THORUPZWICK
+/*
 #define HASH_THORUPZWICK(key,keylen,hashv)           \
 do {                                                 \
 	srand((unsigned)time(NULL));                     \
@@ -70,7 +71,7 @@ do {                                                 \
 	  (hashv) = (a*(*x)) >> (32-l);					 \
 	}                                                \
 } while (0)
-
+*/
 /**
  * add_s_node_to_graph - adding the super vertex s to the graph
  * @graph: graph
@@ -100,11 +101,13 @@ struct node* find_pivot (struct node *aiplusone_pivot_arr,
 						 struct node *nodes, unsigned int n)
 {
 	// no need to allocate for s node, therefore n-1
-	int *visited_nodes = malloc ((n-1) * sizeof (int));
+	int *visited_nodes = malloc ((n-1) * sizeof (int)+1);
+	memset (visited_nodes, 0, ((n-1) * sizeof (int)+1));
 	for (unsigned int i = 0; i < n-1; i++)
 		visited_nodes[i] = -1;
 
-	struct node *pivot_arr = malloc ((n-1) * sizeof (struct node));
+	struct node *pivot_arr = malloc ((n-1) * sizeof (struct node)+1);
+	memset (pivot_arr, 0, ((n-1) * sizeof (int)+1));
 
 	if (pivot_arr == NULL) {
 		printf ("Failed to allocate pivot array\n");
@@ -143,7 +146,7 @@ struct node* find_pivot (struct node *aiplusone_pivot_arr,
 		}
 	}
 
-	free (visited_nodes);
+	FREE (visited_nodes);
 
 	return pivot_arr;
 }
@@ -228,9 +231,10 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
 	cluster->w = w;
 	cluster->num_nodes = num_nodes;
 
-	free (in_heap);
-	free (relaxed);
-	free (Q);
+	FREE (S);
+	FREE (in_heap);
+	FREE (relaxed);
+	FREE (Q);
 
 	return cluster;
 }
@@ -250,7 +254,7 @@ struct clusterlist *construct_clusters (struct graph *graph, struct aseq **A,
 										struct node *pivot_nodes, int i, int k)
 {
 	int num_clusters = 0;
-	struct cluster *tmp_clusters = malloc (A[i]->seqsize * sizeof(struct cluster));
+	struct cluster **tmp_clusters = malloc (A[i]->seqsize * sizeof (struct cluster));
 	struct clusterlist *C = malloc (sizeof (struct clusterlist));
 
 	// For every w in A_i - A_i+1
@@ -259,7 +263,8 @@ struct clusterlist *construct_clusters (struct graph *graph, struct aseq **A,
 		if (i == (k-1)) {
 			// create cluster C(w) = V, computing the distances from w to all other v in V
 			struct cluster *cw = dijkstra_cluster_tz (graph, &A[i]->nodes[w], NULL, k, i);
-			memcpy (&tmp_clusters[num_clusters], cw, sizeof (struct cluster));
+			tmp_clusters[num_clusters] = malloc (sizeof (struct cluster));
+			memcpy (tmp_clusters[num_clusters], cw, sizeof (struct cluster));
 			num_clusters += 1;
 		} else {
 			// check if w in A_i - A_i+1
@@ -269,19 +274,22 @@ struct clusterlist *construct_clusters (struct graph *graph, struct aseq **A,
 				// if indeed w in A_i - A_i+1, go on with dijkstra to create a cluster C(w)
 				struct cluster *cw = dijkstra_cluster_tz (graph, &A[i]->nodes[w],
 														  pivot_nodes, k, i);
-				memcpy (&tmp_clusters[num_clusters], cw, sizeof (struct cluster));
+				tmp_clusters[num_clusters] = malloc (sizeof (struct cluster));
+				memcpy (tmp_clusters[num_clusters], cw, sizeof (struct cluster));
 				num_clusters += 1;
 			}
 		}
 	}
 
-	C->clusters = malloc (num_clusters * sizeof (struct node));
+	C->clusters = malloc (num_clusters * sizeof (struct cluster));
 	if (C->clusters == NULL) {
 		printf ("Alloc of C->clusters failed\n");
 		exit (-1);
 	}
-	for (int i = 0; i < num_clusters; i++)
-		memcpy (&C->clusters[i], &tmp_clusters[i], sizeof (struct cluster));
+	for (int i = 0; i < num_clusters; i++) {
+		memcpy (&C->clusters[i], tmp_clusters[i], sizeof (struct cluster));
+		FREE (tmp_clusters[i]);
+	}
 
 	C->num_clusters = num_clusters;
 
@@ -300,10 +308,10 @@ struct clusterlist *construct_clusters (struct graph *graph, struct aseq **A,
  * For each v in V, we construct a bunch, containing all w of all C(w) v belongs to
  * Note, we get A_{k-1} \subseteq B(v) for every v in V, meaning all nodes from A_{k-1} belong to every bunch
  */
-void construct_bunches (struct clusterlist **C, int k, struct aseq **A, struct bunchlist *bunchlist, struct node **pivot_nodes)
+void construct_bunches (struct clusterlist **C, int k,
+						struct bunchlist *bunchlist, struct node **pivot_nodes)
 {
 	for (int i = 0; i < k; i++) {
-		if (A[i]->seqsize > 0) {
 			for (int c = 0; c < C[i]->num_clusters; c++) {
 				struct cluster *cluster = &C[i]->clusters[c];
 				for (int v = 0; v < cluster->num_nodes; v++) {
@@ -321,7 +329,6 @@ void construct_bunches (struct clusterlist **C, int k, struct aseq **A, struct b
 					}
 				}
 			}
-		}
 	}
 	return;
 }
@@ -341,7 +348,6 @@ void construct_bunches (struct clusterlist **C, int k, struct aseq **A, struct b
  */
 bool create_aseqs (struct aseq **A, int k, struct graph *graph, struct node *nodes)
 {
-	int seqsizes[k];
 	int *tmp = malloc (graph->V * sizeof(int));
 	// A_k <- Ø
 	A[k] = NULL;
@@ -354,39 +360,42 @@ bool create_aseqs (struct aseq **A, int k, struct graph *graph, struct node *nod
 		memcpy (&A[0]->nodes[i], &nodes[i], sizeof(struct node));
 		A[0]->added[i] = 1;
 	}
-
 	A[0]->seqsize = graph->V;
-	seqsizes[0] = graph->V;
-	// Set the seed
+
 	srand((unsigned)time(NULL));
 
 	for (int i = 1; i <= k-1; i++) {
 		A[i] = malloc (sizeof (struct aseq));
 		A[i]->added = calloc (graph->V, sizeof(int));
-		seqsizes[i] = 0;
-		for (int j = 0; j < seqsizes[i-1]; j++) {
+		A[i]->seqsize = 0;
+		for (int j = 0; j < A[i-1]->seqsize; j++) {
 			// Generates 0.0 - 1.0
 			double rnd = (double)rand()/RAND_MAX;
 			// Check random number is <= n^{-1/k}
 			if (rnd <= pow (graph->V, -1.0/(double)k)) {
 				int v_id = A[i-1]->nodes[j].v_id;
-				tmp[seqsizes[i]] = v_id;
+				tmp[A[i]->seqsize] = v_id;
 				A[i]->added[v_id] = 1;
-				seqsizes[i] += 1;
+				A[i]->seqsize += 1;
 			}
 		}
 
-		if (seqsizes[i] == 0)
+		if (A[i]->seqsize == 0) {
+			FREE (tmp);
+			for (int j = 0; j < i; j++) {
+				FREE (A[j]->added);
+				FREE (A[j]);
+			}
 			return false;
+		}
 
-		A[i]->seqsize = seqsizes[i];
-		A[i]->nodes = malloc (seqsizes[i] * sizeof(struct node));
-		for (int l = 0; l < seqsizes[i]; l++) {
+		A[i]->nodes = malloc (A[i]->seqsize * sizeof(struct node));
+		for (int l = 0; l < A[i]->seqsize; l++) {
 			memcpy (&A[i]->nodes[l], &nodes[tmp[l]], sizeof (struct node));
 		}
 	}
 
-	free (tmp);
+	FREE (tmp);
 
 	return true;
 }
@@ -434,14 +443,19 @@ struct prepro *prepro (struct graph *graph, int k)
 
 	// Creating all A_i sequences
 	empty = create_aseqs (A, k, graph, nodes);
+
 	// Empty set, thus d(A_i, v) = infinity (thus NULL array) */
 	// also, since A_{k-1} = Ø, rerun!
 	if (!empty) {
 		printf ("\nA_{k-1} == Ø, empty set.");
 		printf (" Hence, re-running the preprocessing algorithm!\n");
+		FREE (nodes);
+		FREE (bunchlist->bunches);
+		FREE (bunchlist);
 		prepro->nodes = NULL;
 		prepro->bunchlist = NULL;
 		prepro->success = false;
+		prepro->k = -1;
 		return prepro;
 	}
 
@@ -452,38 +466,30 @@ struct prepro *prepro (struct graph *graph, int k)
 
 	// d(A_k, v) = infinity, thus NULL
 	dist[k] = NULL;
-	// initialising the heap
-	heap = initialise_single_source_tz (graph);
 
 	// k iterations
 	for (int i = k-1; i >= 0; i--) {
 		// copy of heap to work with for current i
-		struct heap *write_heap = copy_heap_struct (heap);
-		// copy of graph to work with for current i
-		struct graph *write_graph = copy_graph_struct (graph, write_heap);
+		// initialising the heap
+		heap = initialise_single_source_tz (graph);
+		/* // copy of graph to work with for current i */
+		struct graph *write_graph = copy_graph_struct (graph, heap);
 		// adding source vertex s to G, weight 0 to all other vertices in A_i
 		add_s_node_to_graph (write_graph, A[i]);
 		// adding s to heap as well to allow computing sp
-		min_heap_insert (write_heap, write_graph->V, 0, write_graph);
+		min_heap_insert (heap, write_graph->V, 0, write_graph);
 		write_graph->V += 1;
 		n = write_graph->V;
 
+		// compute d(A_i, v), running dijkstra once for each i
+		dist[i] = malloc (n * sizeof (struct node));
+		dist[i] = dijkstra_alg_tz (write_graph, heap);
+
 		#ifdef DEBUG
 		pp_graph (write_graph);
-		#endif
-
-		// compute d(A_i, v), running dijkstra once for each i
-		struct node *sps = dijkstra_alg_tz (write_graph, write_heap);
-		dist[i] = sps;
-
-		#ifdef DEBUG
 		printf ("prepro dijkstra result for i=%d\n", i);
 		pp_nodes (dist[i], n);
 		#endif
-
-		// No use of write heap and graph anymore
-		free_heap (write_heap);
-		free_graph (write_graph);
 
 		// Finding the pivot elements, note p_k(v) undefined as A_k = Ø (as in the else case)
 		if (i != k-1) {
@@ -492,22 +498,27 @@ struct prepro *prepro (struct graph *graph, int k)
 			pivot_arr = find_pivot (NULL, dist[i], n);
 		}
 
+		memcpy (&pivot_nodes[i], &pivot_arr, sizeof (struct node*));
+
 		#ifdef DEBUG
-		pp_pivots (pivot_arr, nodes, n, i);
+		pp_pivots (pivot_nodes[i], nodes, n, i);
 		#endif
 
-		memcpy (&pivot_nodes[i], &pivot_arr, sizeof (struct node*));
+		C[i] = malloc (sizeof (struct clusterlist));
 		C[i] = construct_clusters (graph, A, pivot_nodes[i+1], i, k);
 
 		#ifdef DEBUG
 		pp_clusters (C, i);
 		#endif
+
+		free_graph (write_graph);
+		free_heap (heap);
 	}
 
-	construct_bunches (C, k, A, bunchlist, pivot_nodes);
+	construct_bunches (C, k, bunchlist, pivot_nodes);
 
 	#ifdef DEBUG
-	pp_bunches (bunchlist);
+	/* pp_bunches (bunchlist); */
 	#endif
 
 	prepro->nodes = malloc (graph->V * sizeof(struct node));
@@ -517,7 +528,7 @@ struct prepro *prepro (struct graph *graph, int k)
 	prepro->success = true;
 	prepro->k = k;
 
-	free_heap (heap);
+	free_graph (graph);
 
 	return prepro;
 }

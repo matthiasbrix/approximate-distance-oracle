@@ -48,14 +48,10 @@ Fx. tænk på sleep - CPUen arbejder så ikke, således vil den ikke tælle det 
 // TODO: SKal jeg genindlæs grafen når jeg kører dijkstra? Skal jeg overhovedet måle indlæsningen af knuderne?
 // Skriv i rapporten hvad der sker når grafen ikke er sammenhængende...
 
-struct dijkstra_res *run_dijkstra (const char *fname_read, int u, int v)
+struct dijkstra_res *run_dijkstra (struct graph *graph, int u, int v)
 {
 	struct dijkstra_res *dijkstra = malloc (sizeof (struct dijkstra_res));
 	struct rusage r_usage;
-	int n = count_vertices (fname_read);
-	struct graph *graph = malloc (sizeof (struct graph));
-	graph =	init_graph (n);
-	read_from_file (graph, fname_read);
 	clock_t begin = clock();
 	struct node *S = dijkstra_alg (graph, u-offset);
 	clock_t end = clock();
@@ -72,23 +68,21 @@ struct dijkstra_res *run_dijkstra (const char *fname_read, int u, int v)
 }
 
 // TODO: Reset memory usage to 0 after prepro
+// TODO: Brug bit fields
 
-struct tz_res *run_tz (const char *fname_read, int k, int u, int v)
+struct tz_res *run_tz (struct graph *graph, int k, int u, int v)
 {
 	struct tz_res *tz = malloc (sizeof (struct tz_res));
 	clock_t begin, end;
 	double cpu_time_spent;
 	struct rusage r_usage;
-	int n = count_vertices (fname_read);
-	struct graph *graph = malloc (sizeof (struct graph));
-	graph =	init_graph (n);
-	read_from_file (graph, fname_read);
 
 	begin = clock();
 	struct prepro *pp = malloc (sizeof (struct prepro));
 	pp->success = false;
 	while (!pp->success) {
 		pp = prepro (graph, k);
+		sleep (1);
 	}
 	end = clock();
 	cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
@@ -130,8 +124,15 @@ int main (int argc, char *argv[])
 			int k = atoi(argv[i+2]);
 			int u = atoi(argv[i+3]);
 			int v = atoi(argv[i+4]);
-			struct tz_res *tz = run_tz (fname_read, k, u, v);
-			struct dijkstra_res *dijkstra = run_dijkstra (fname_read, u, v);
+			int n = count_vertices (fname_read);
+			struct graph *graph = malloc (sizeof (struct graph));
+			graph =	init_graph (n);
+			read_from_file (graph, fname_read);
+			struct tz_res *tz = run_tz (graph, k, u, v);
+			graph = malloc (sizeof (struct graph));
+			graph =	init_graph (n);
+			read_from_file (graph, fname_read);
+			struct dijkstra_res *dijkstra = run_dijkstra (graph, u, v);
 			write_to_file (fname_write, fname_read, u, v, tz, dijkstra);
 		};
 	}

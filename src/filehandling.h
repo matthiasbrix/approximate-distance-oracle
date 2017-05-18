@@ -23,4 +23,8 @@ void write_to_file (const char *fname, const char *input_file, int u, int v,
                     struct tz_res *tz, struct dijkstra_res *dijkstra);
 int count_vertices (const char *fname);
 
+int get_current_vm ();
+int get_current_pm ();
+int get_vm_peak ();
+
 #endif

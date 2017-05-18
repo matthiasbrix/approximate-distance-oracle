@@ -20,7 +20,10 @@ void pp_clusters (struct clusterlist **C, int i)
 	printf("Pretty print all clusters\n");
 	for (int a = 0; a < C[i]->num_clusters; a++)
 		for (int b = 0; b < C[i]->clusters[a].num_nodes; b++)
-			printf ("cluster nodes for C(w:%d)=v:%d, SP:%d\n", C[i]->clusters[a].w->v_id+offset, C[i]->clusters[a].nodes[b].v_id+offset, C[i]->clusters[a].nodes[b].sp_est);
+			printf ("cluster nodes for C(w:%d)=v:%d, SP:%d\n",
+					C[i]->clusters[a].w->v_id+offset,
+					C[i]->clusters[a].nodes[b].v_id+offset,
+					C[i]->clusters[a].nodes[b].sp_est);
 
 	return;
 }
@@ -32,7 +35,9 @@ void pp_bunches (struct bunchlist *bunchlist)
 		struct node *s;
 		// iterate over hash elements of B(v)
 		for (s = bunchlist->bunches[i].nodes; s != NULL; s = s->hh.next) {
-			printf("B(v:%d)=w:%d, SP:%d\n", bunchlist->bunches[i].v->v_id+offset, s->v_id+offset, s->sp_est);
+			printf("B(v:%d)=w:%d, SP:%d\n",
+				   bunchlist->bunches[i].v->v_id+offset,
+				   s->v_id+offset, s->sp_est);
 		}
 	}
 
@@ -43,7 +48,9 @@ void pp_pivots (struct node *pivot_arr, struct node *nodes, unsigned int n, int 
 {
 	printf("Pretty print all pivot elements (witnesses) \n");
 	for (unsigned int j = 0; j < n-1; j++) {
-		printf ("p_%d (%d)=%d, dist:%d\n", i, nodes[j].v_id+offset, pivot_arr[nodes[j].v_id].v_id+offset, pivot_arr[nodes[j].v_id].sp_est);
+		printf ("p_%d(%d) = %d, dist:%d\n", i, nodes[j].v_id+offset,
+				pivot_arr[nodes[j].v_id].v_id+offset,
+				pivot_arr[nodes[j].v_id].sp_est);
 	}
 }
 
@@ -97,20 +104,19 @@ void add_s_node_to_graph (struct graph *graph, struct aseq *ai)
  * (*) property, if d(A_i, v) == d(A_i+1,v), copy! Means we get p_i(v) = p_i+1(v) ∈ B(v),
  * otherwise, δ(p_i(v), v) = δ(A_i, v) < δ(A_i+1, v). Thus distance will be same, but the node would change (to A_i+1) if (*) fails
  */
-struct node* find_pivot (struct node *aiplusone_pivot_arr,
+struct node *find_pivot (struct node *aiplusone_pivot_arr,
 						 struct node *nodes, unsigned int n)
 {
 	// no need to allocate for s node, therefore n-1
-	int *visited_nodes = malloc ((n-1) * sizeof (int)+1);
-	memset (visited_nodes, 0, ((n-1) * sizeof (int)+1));
+	int *visited_nodes = malloc ((n-1) * sizeof (int));
 	for (unsigned int i = 0; i < n-1; i++)
 		visited_nodes[i] = -1;
 
-	struct node *pivot_arr = malloc ((n-1) * sizeof (struct node)+1);
-	memset (pivot_arr, 0, ((n-1) * sizeof (int)+1));
+	struct node *pivot_arr = malloc ((n-1) * sizeof (struct node));
+	memset (pivot_arr, 0, ((n-1) * sizeof (int)));
 
 	if (pivot_arr == NULL) {
-		printf ("Failed to allocate pivot array\n");
+		perror ("Failed to allocate pivot array\n");
 		exit (-1);
 	}
 
@@ -120,8 +126,7 @@ struct node* find_pivot (struct node *aiplusone_pivot_arr,
 		struct node *v = nodes[i].pi;
 
 		if (visited_nodes[nodes[i].v_id] != -1) {
-			int pivid = pivot_arr[nodes[i].v_id].v_id;
-			memcpy (&pivot_arr[nodes[i].v_id], &pivot_arr[pivid], sizeof(pivot_arr[pivid]));
+			memcpy (&pivot_arr[nodes[i].v_id], &pivot_arr[visited_nodes[nodes[i].v_id]], sizeof(pivot_arr[visited_nodes[nodes[i].v_id]]));
 			pivot_arr[nodes[i].v_id].sp_est = nodes[nodes[i].v_id].sp_est;
 		} else if (v->v_id == nodes[n-1].v_id) {
 			memcpy (&pivot_arr[nodes[i].v_id], &nodes[i], sizeof(nodes[i]));
@@ -179,7 +184,7 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
 
 	if (Q == NULL || S == NULL || in_heap == NULL
 		|| relaxed == NULL || Q->nodes == NULL || cluster == NULL) {
-		printf ("Failed to allocate memory for in_heap, relaxed, S, Q, Q->nodes or cluster\n");
+		perror ("Failed to allocate memory for in_heap, relaxed, S, Q, Q->nodes or cluster\n");
 		exit (-1);
 	}
 
@@ -222,7 +227,7 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
 
 	cluster->nodes = malloc (num_nodes * sizeof (struct node));
 	if (cluster->nodes == NULL) {
-		printf ("Alloc of cluster->nodes failed\n");
+		perror ("Alloc of cluster->nodes failed\n");
 		exit (-1);
 	}
 	for (int i = 0; i < num_nodes; i++)
@@ -234,7 +239,7 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
 	FREE (S);
 	FREE (in_heap);
 	FREE (relaxed);
-	FREE (Q);
+	free_heap (Q);
 
 	return cluster;
 }
@@ -254,7 +259,7 @@ struct clusterlist *construct_clusters (struct graph *graph, struct aseq **A,
 										struct node *pivot_nodes, int i, int k)
 {
 	int num_clusters = 0;
-	struct cluster **tmp_clusters = malloc (A[i]->seqsize * sizeof (struct cluster));
+	struct cluster **tmp_clusters = malloc (A[i]->seqsize * sizeof (struct cluster*));
 	struct clusterlist *C = malloc (sizeof (struct clusterlist));
 
 	// For every w in A_i - A_i+1
@@ -283,7 +288,7 @@ struct clusterlist *construct_clusters (struct graph *graph, struct aseq **A,
 
 	C->clusters = malloc (num_clusters * sizeof (struct cluster));
 	if (C->clusters == NULL) {
-		printf ("Alloc of C->clusters failed\n");
+		perror ("Alloc of C->clusters failed\n");
 		exit (-1);
 	}
 	for (int i = 0; i < num_clusters; i++) {
@@ -312,23 +317,23 @@ void construct_bunches (struct clusterlist **C, int k,
 						struct bunchlist *bunchlist, struct node **pivot_nodes)
 {
 	for (int i = 0; i < k; i++) {
-			for (int c = 0; c < C[i]->num_clusters; c++) {
-				struct cluster *cluster = &C[i]->clusters[c];
-				for (int v = 0; v < cluster->num_nodes; v++) {
-					struct node *s;
-					int tmp = cluster->nodes[v].v_id;
-					bunchlist->bunches[tmp].piv[i] = pivot_nodes[i][tmp];
-					HASH_FIND_INT (bunchlist->bunches[tmp].nodes, &cluster->w->v_id, s);
-					if (s == NULL) {
-						cluster->w->sp_est = cluster->nodes[v].sp_est;
-						s = malloc (sizeof (struct node));
-						memcpy (s, cluster->w, sizeof(&cluster->w));
-						// adding node id to the hash
-						HASH_ADD_INT (bunchlist->bunches[tmp].nodes, v_id, s);
-						bunchlist->bunches[tmp].num_nodes += 1;
-					}
+		for (int c = 0; c < C[i]->num_clusters; c++) {
+			struct cluster *cluster = &C[i]->clusters[c];
+			for (int v = 0; v < cluster->num_nodes; v++) {
+				struct node *s;
+				int tmp = cluster->nodes[v].v_id;
+				bunchlist->bunches[tmp].piv[i] = pivot_nodes[i][tmp];
+				HASH_FIND_INT (bunchlist->bunches[tmp].nodes, &cluster->w->v_id, s);
+				if (s == NULL) {
+					cluster->w->sp_est = cluster->nodes[v].sp_est;
+					s = malloc (sizeof (struct node));
+					memcpy (s, cluster->w, sizeof(&cluster->w));
+					// adding node to the hash
+					HASH_ADD_INT (bunchlist->bunches[tmp].nodes, v_id, s);
+					bunchlist->bunches[tmp].num_nodes += 1;
 				}
 			}
+		}
 	}
 	return;
 }
@@ -447,7 +452,7 @@ struct prepro *prepro (struct graph *graph, int k)
 	// Empty set, thus d(A_i, v) = infinity (thus NULL array) */
 	// also, since A_{k-1} = Ø, rerun!
 	if (!empty) {
-		printf ("\nA_{k-1} == Ø, empty set.");
+		printf ("A_{k-1} == Ø, empty set.");
 		printf (" Hence, re-running the preprocessing algorithm!\n");
 		FREE (nodes);
 		FREE (bunchlist->bunches);
@@ -518,7 +523,7 @@ struct prepro *prepro (struct graph *graph, int k)
 	construct_bunches (C, k, bunchlist, pivot_nodes);
 
 	#ifdef DEBUG
-	/* pp_bunches (bunchlist); */
+	pp_bunches (bunchlist);
 	#endif
 
 	prepro->nodes = malloc (graph->V * sizeof(struct node));
@@ -553,6 +558,7 @@ int dist (struct node *u, struct node *v, struct bunchlist *bunchlist)
 	// w = u = p_0(u)
 	w = u;
 
+	// query-algoritmen returnerer summen af to afstande i clusters.
 	// while w not in B(v)
 	while (1) {
 		struct node *out, *tmp;
@@ -560,7 +566,6 @@ int dist (struct node *u, struct node *v, struct bunchlist *bunchlist)
 		// checking if w in B(v), where nodes are vertices w in V
 		HASH_FIND_INT(bunchlist->bunches[v->v_id].nodes, &w->v_id, out);
 		if (out) {
-			// if w in B(v), break loop
 			dist = out->sp_est;
 			break;
 		} else {
@@ -573,7 +578,8 @@ int dist (struct node *u, struct node *v, struct bunchlist *bunchlist)
 			v = tmp;
 			// w <- p_i (u)
 			w = &bunchlist->bunches[u->v_id].piv[i];
-			printf ("w_id:%d, sp:%d u_id:%d v_id:%d\n", w->v_id+offset, w->sp_est, u->v_id+offset, v->v_id+offset);
+			printf ("w_id:%d, sp:%d u_id:%d v_id:%d\n", w->v_id+offset,
+					w->sp_est, u->v_id+offset, v->v_id+offset);
 		}
 	}
 

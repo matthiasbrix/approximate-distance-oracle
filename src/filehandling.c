@@ -2,6 +2,78 @@
 
 FILE *file;
 
+int parse_line (char* line)
+{
+	// This assumes that a digit will be found and the line ends in " Kb".
+	int i = strlen (line);
+	const char* p = line;
+	while (*p < '0' || *p > '9')
+		p++;
+	line[i-3] = '\0';
+	i = atoi(p);
+	return i;
+}
+
+// Current VM value Note: this value is in KB!
+int get_current_vm ()
+{
+	FILE *file = fopen("/proc/self/status", "r");
+	int result = -1;
+	char line[128];
+
+	while (fgets(line, 128, file) != NULL) {
+		if (strncmp(line, "VmSize:", 7) == 0) {
+			result = parse_line (line);
+			break;
+		}
+	}
+	if (fclose(file)) {
+		printf("Error closing file.");
+		exit (EXIT_FAILURE);
+	}
+	return result;
+}
+
+// PM, Note: this value is in KB!
+int get_current_pm ()
+{
+	FILE *file = fopen("/proc/self/status", "r");
+	int result = -1;
+	char line[128];
+
+	while (fgets(line, 128, file) != NULL){
+		if (strncmp(line, "VmRSS:", 6) == 0) {
+			result = parse_line(line);
+			break;
+		}
+	}
+	if (fclose(file)) {
+		printf("Error closing file.");
+		exit (EXIT_FAILURE);
+	}
+	return result;
+}
+
+// Peak VM, Note: this value is in KB!
+int get_vm_peak ()
+{
+	FILE *file = fopen("/proc/self/status", "r");
+	int result = -1;
+	char line[128];
+
+	while (fgets(line, 128, file) != NULL) {
+		if (strncmp(line, "VmPeak:", 7) == 0) {
+			result = parse_line(line);
+			break;
+		}
+	}
+	if (fclose(file)) {
+		printf("Error closing file.");
+		exit (EXIT_FAILURE);
+	}
+	return result;
+}
+
 void read_from_file (struct graph *graph, const char *fname)
 {
 	char t;

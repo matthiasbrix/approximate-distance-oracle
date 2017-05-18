@@ -12,48 +12,49 @@
 
 /* You can limit a process's resident set size to avoid having a single application "eat up" all the RAM on your system and forcing other applications to swap (or fail entirely with out-of-memory conditions). */
 
-/* typedef struct { */
-/* 	unsigned long size,resident,share,text,lib,data,dt; */
-/* } statm_t; */
+typedef struct {
+	unsigned long size,resident,share,text,lib,data,dt;
+} statm_t;
 
-/* void read_off_memory_status() */
-/* { */
-/* 	statm_t result; */
-/* 	const char* statm_path = "/proc/self/statm"; */
+void read_off_memory_status()
+{
+	statm_t result;
+	const char* statm_path = "/proc/self/statm";
 
-/*   FILE *f = fopen(statm_path,"r"); */
-/*   if(!f){ */
-/* 	perror(statm_path); */
-/* 	abort(); */
-/*   } */
-/*   if(7 != fscanf(f,"%ld %ld %ld %ld %ld %ld %ld", */
-/* 	&result.size,&result.resident,&result.share,&result.text,&result.lib,&result.data,&result.dt)) */
-/*   { */
-/* 	perror(statm_path); */
-/* 	abort(); */
-/*   } */
-/*   printf ("%ld %ld %ld %ld %ld %ld %ld\n", */
-/* 		  result.size, result.resident, result.share, result.text, result.lib, result.data, result.dt); */
-/*   fclose(f); */
-/* } */
+  FILE *f = fopen(statm_path,"r");
+  if(!f){
+	perror(statm_path);
+	abort();
+  }
+  if(7 != fscanf(f,"%ld %ld %ld %ld %ld %ld %ld",
+	&result.size,&result.resident,&result.share,&result.text,&result.lib,&result.data,&result.dt))
+  {
+	perror(statm_path);
+	abort();
+  }
+  printf ("%ld %ld %ld %ld %ld %ld %ld\n",
+		  result.size, result.resident, result.share, result.text, result.lib, result.data, result.dt);
+  fclose(f);
+}
 
 
 // cat /proc/self/statm
 int main () {
 
 	/* FILE* status = fopen( "/proc/self/status", "r" ); */
-	int i = 0;
-	struct rusage r_usage;
-	while (++i <= 10) {
-		void *m = malloc(20*1024*1024);
-		memset(m,0,20*1024*1024);
-		getrusage(RUSAGE_SELF,&r_usage);
-		printf("Memory usage = %ld\n",r_usage.ru_maxrss);
-	}
-	printf("\nAllocated memory, sleeping ten seconds after which we will check again...\n\n");
-	sleep (1);
-	getrusage(RUSAGE_SELF,&r_usage);
-	printf("Memory usage = %ld KB\n", r_usage.ru_maxrss);
+	read_off_memory_status ();
+	/* int i = 0; */
+	/* struct rusage r_usage; */
+	/* while (++i <= 10) { */
+	/* 	void *m = malloc(20*1024*1024); */
+	/* 	memset(m,0,20*1024*1024); */
+	/* 	getrusage(RUSAGE_SELF,&r_usage); */
+	/* 	printf("Memory usage = %ld\n",r_usage.ru_maxrss); */
+	/* } */
+	/* printf("\nAllocated memory, sleeping ten seconds after which we will check again...\n\n"); */
+	/* sleep (1); */
+	/* getrusage(RUSAGE_SELF,&r_usage); */
+	/* printf("Memory usage = %ld KB\n", r_usage.ru_maxrss); */
 
   return 0;
 }

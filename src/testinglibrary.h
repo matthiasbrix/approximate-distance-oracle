@@ -4,6 +4,7 @@
 #include "graph.h"
 #include "priorityqueue.h"
 #include "thorupzwick.h"
+#include "filehandling.h"
 #include <sys/resource.h>
 
 void test_prepro ();

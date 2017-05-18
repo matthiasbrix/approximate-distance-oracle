@@ -1,13 +1,44 @@
 #include "testinglibrary.h"
+#include "sys/types.h"
+#include "sys/sysinfo.h"
+
+// VM
+
+// cat /proc/cpuinfo
+
+// https://stackoverflow.com/questions/63166/how-to-determine-cpu-and-memory-consumption-from-inside-a-process
+
+void test () {
+	struct node *ja = (malloc (1024*1024*20 * sizeof(struct node)));;
+	ja = ja;
+	printf ("2 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm (), get_current_pm());
+}
 
 void test_prepro ()
 {
-	struct rusage r_usage;
+	printf ("1 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm (), get_current_pm());
+	struct node *hi = (malloc (1024*1024*20 * sizeof(struct node)));
+	printf ("2 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm (), get_current_pm());
+	hi = hi;
+	/* free (hi); */
+	printf ("3 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm (), get_current_pm());
+	struct node *hi2 = (malloc (1024*1024*20 * sizeof(struct node)));
+	printf ("4 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm (), get_current_pm());
+	hi2 = hi2;
+	/* free (hi2); */
+
+	printf ("5 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm (), get_current_pm());
+	struct node *hi3 = (malloc (1024*1024*20 * sizeof(struct node)));
+	printf ("5 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm (), get_current_pm());
+	hi3 = hi3;
+	test ();
+	printf ("6 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm (), get_current_pm());
+	printf ("6 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm (), get_current_pm());
+
 	int k, n, u, v, d;
 	double cpu_time_spent;
 	k = 3, n = 5, u = 1, v = 4;
 	struct graph* graph = init_graph (n);
-
 	add_edges (graph, 0, 1, 10);
 	add_edges (graph, 0, 2, 5);
 	add_edges (graph, 0, 4, 7);
@@ -18,29 +49,25 @@ void test_prepro ()
 	add_edges (graph, 3, 4, 4);
 
 	clock_t begin = clock();
+	printf ("Memory before running prepro = %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm (), get_current_pm());
 	struct prepro *pp = malloc (sizeof (struct prepro));
 	pp->success = false;
-
 	while (!pp->success) {
 		pp = prepro (graph, k);
 		sleep (1);
 	}
-
 	clock_t end = clock();
 	cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
 	printf ("Time spent on prepro Thorup-Zwick: %f\n", cpu_time_spent);
-	getrusage (RUSAGE_SELF, &r_usage);
-	printf ("Memory usage of prepro = %ld KB\n", r_usage.ru_maxrss);
+	printf ("Memory usage of prepro = %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm (), get_current_pm());
 
-	struct rusage r_usage2;
 	clock_t begin2 = clock();
 	d = dist (&pp->nodes[u], &pp->nodes[v], pp->bunchlist);
 	clock_t end2 = clock();
 	cpu_time_spent = (double)(end2 - begin2) / CLOCKS_PER_SEC;
-	getrusage (RUSAGE_SELF, &r_usage2);
 	printf ("Time spent on query Thorup-Zwick: %f\n", cpu_time_spent);
 	printf ("Result of Thorup-Zwick dist (%d, %d) = %d\n", u, v, d);
-	printf ("Memory usage of dist = %ld KB\n", r_usage2.ru_maxrss);
+	printf ("Memory usage of prepro = %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm (), get_current_pm());
 
 	graph = init_graph (n);
 	add_edges (graph, 0, 1, 10);
@@ -52,15 +79,13 @@ void test_prepro ()
 	add_edges (graph, 2, 4, 2);
 	add_edges (graph, 3, 4, 4);
 
-	struct rusage r_usage3;
 	clock_t begin3 = clock();
 	struct node *S = dijkstra_alg (graph, u);
 	clock_t end3 = clock();
 	cpu_time_spent = (double)(end3 - begin3) / CLOCKS_PER_SEC;
-	getrusage (RUSAGE_SELF, &r_usage3);
 	printf ("Result of Dijkstra SSP (%d, %d) = %d\n", u, v, S[v-offset].sp_est);
 	printf ("Time spent on running Dijkstra: %f\n", cpu_time_spent);
-	printf ("Memory usage of dijkstra = %ld KB\n", r_usage2.ru_maxrss);
+	printf ("Memory usage of prepro = %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm (), get_current_pm());
 }
 
 // Hardcoded tests from various sources

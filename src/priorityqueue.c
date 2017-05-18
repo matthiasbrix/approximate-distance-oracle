@@ -71,12 +71,12 @@ void build_min_heap (struct heap *heap)
 	return;
 }
 
-struct node* minimum (struct heap *heap)
+struct node *minimum (struct heap *heap)
 {
 	return heap->nodes[0];
 }
 
-struct node* extract_min (struct heap *heap)
+struct node *extract_min (struct heap *heap)
 {
 	if (heap->heap_size < 1) {
 		printf ("Heap underflow %d\n", HEAP_UNDERFLOW);
@@ -147,8 +147,8 @@ void min_heap_insert (struct heap *heap, int id,
 void free_heap (struct heap *heap)
 {
 	for (int i = 0; i < heap->heap_size; i++)
-		free (heap->nodes[i]);
-	free (heap);
+		FREE (heap->nodes[i]);
+	FREE (heap);
 }
 
 void pp_heap (struct heap *hp)

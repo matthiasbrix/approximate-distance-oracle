@@ -33,6 +33,9 @@ Fx. tænk på sleep - CPUen arbejder så ikke, således vil den ikke tælle det 
   preprocessing algorithm also outputs, for every w ∈ V, the shortest paths tree T (w)
   that spans the cluster C(w).
  */
+// større k, mindre pladsforbrug
+// Mange kanter contra få kanter, kig også på forskellige k og knude mængder
+// Hvad der sker med prepro og query
 // HVorfor vil thorup-zwick ikke være lige så "rigtig" som normal Dijkstra?
 // http://eternallyconfuzzled.com/tuts/algorithms/jsw_tut_hashing.aspx
 // TODO: Læs om hash funktionen af uthash
@@ -48,34 +51,31 @@ Fx. tænk på sleep - CPUen arbejder så ikke, således vil den ikke tælle det 
 // TODO: SKal jeg genindlæs grafen når jeg kører dijkstra? Skal jeg overhovedet måle indlæsningen af knuderne?
 // Skriv i rapporten hvad der sker når grafen ikke er sammenhængende...
 
+// TODO: Reset memory usage to 0 after prepro
+// TODO: Find fejle i Thorup-Zwick output
+
 struct dijkstra_res *run_dijkstra (struct graph *graph, int u, int v)
 {
 	struct dijkstra_res *dijkstra = malloc (sizeof (struct dijkstra_res));
-	struct rusage r_usage;
 	clock_t begin = clock();
 	struct node *S = dijkstra_alg (graph, u-offset);
 	clock_t end = clock();
 	double cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-	getrusage (RUSAGE_SELF, &r_usage);
 	printf ("\nResult of Dijkstra SSP (%d, %d) = %d\n", u, v, S[v-offset].sp_est);
 	printf ("Time spent on running Dijkstra: %f\n", cpu_time_spent);
-	printf ("Memory usage = %ld KB\n", r_usage.ru_maxrss);
+	printf ("Memory usage of Dijkstra = %d KB\n", get_vm_peak ());
 	dijkstra->dist = S[v-offset].sp_est;
 	dijkstra->dist_time = cpu_time_spent;
-	dijkstra->memory_consump = r_usage.ru_maxrss;
+	dijkstra->memory_consump = get_vm_peak ();
 
 	return dijkstra;
 }
-
-// TODO: Reset memory usage to 0 after prepro
-// TODO: Brug bit fields
 
 struct tz_res *run_tz (struct graph *graph, int k, int u, int v)
 {
 	struct tz_res *tz = malloc (sizeof (struct tz_res));
 	clock_t begin, end;
 	double cpu_time_spent;
-	struct rusage r_usage;
 
 	begin = clock();
 	struct prepro *pp = malloc (sizeof (struct prepro));
@@ -87,21 +87,21 @@ struct tz_res *run_tz (struct graph *graph, int k, int u, int v)
 	end = clock();
 	cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
 	printf ("Time spent on prepro Thorup-Zwick: %f\n", cpu_time_spent);
+	printf ("Memory usage of prepro = %d KB\n", get_vm_peak());
 	tz->prepro_time = cpu_time_spent;
 
 	begin = clock();
 	int d = dist (&pp->nodes[u-offset], &pp->nodes[v-offset], pp->bunchlist);
 	end = clock();
 	cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-	getrusage (RUSAGE_SELF, &r_usage);
 	printf ("\nResult of Thorup-Zwick dist(%d, %d) = %d\n", u, v, d);
 	printf ("Time spent on query Thorup-Zwick: %f\n", cpu_time_spent);
-	printf ("Memory usage = %ld KB\n", r_usage.ru_maxrss);
+	printf ("Memory usage of query = %d KB\n", get_vm_peak());
 
 	tz->dist = d;
 	tz->k = k;
 	tz->dist_time = cpu_time_spent;
-	tz->memory_consump = r_usage.ru_maxrss;
+	tz->memory_consump = get_vm_peak();
 
 	return tz;
 }

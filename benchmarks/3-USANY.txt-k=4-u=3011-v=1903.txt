@@ -1,0 +1,16 @@
+Time spent on prepro Thorup-Zwick: 89.583900
+B(1903) w_id:3011
+i=0
+w_id:1881, sp:4401 u_id:1903 v_id:3011
+B(3011) w_id:1881
+i=1
+w_id:1424, sp:16906 u_id:3011 v_id:1903
+B(1903) w_id:1424
+
+Result of Thorup-Zwick dist(3011, 1903) = 93485
+Time spent on query Thorup-Zwick: 0.000221
+Memory usage = 6432076 KB
+
+Result of Dijkstra SSP (3011, 1903) = 61613
+Time spent on running Dijkstra: 0.301922
+Memory usage = 6432076 KB

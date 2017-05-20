@@ -175,8 +175,8 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
 {
 	int idx = 0;
 	int num_nodes = 0;
-	int *in_heap = calloc (graph->V, sizeof (int));
-	int *relaxed = calloc (graph->V, sizeof (int));
+	int *in_heap = calloc (graph->V, sizeof(int));
+	int *relaxed = calloc (graph->V, sizeof(int));
 	struct cluster *cluster = malloc (sizeof (struct cluster));
 	struct heap *Q = malloc (sizeof (struct heap));
 	Q->nodes = malloc (graph->V * sizeof(struct node*));
@@ -188,10 +188,15 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
 		exit (-1);
 	}
 
+	for (int i = 0; i < (int) graph->V; i++) {
+		in_heap[i] = 0;
+		relaxed[i] = 0;
+	}
+
 	Q->heap_size = 0;
 	// w.d = 0
 	min_heap_insert (Q, w->v_id, 0, graph);
-	num_nodes++;
+	num_nodes += 1;
 
 	while (Q->heap_size != 0) {
 		struct node *u = extract_min (Q);
@@ -236,9 +241,9 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
 	cluster->w = w;
 	cluster->num_nodes = num_nodes;
 
-	FREE (S);
-	FREE (in_heap);
 	FREE (relaxed);
+	FREE (in_heap);
+	FREE (S);
 	free_heap (Q);
 
 	return cluster;
@@ -259,7 +264,7 @@ struct clusterlist *construct_clusters (struct graph *graph, struct aseq **A,
 										struct node *pivot_nodes, int i, int k)
 {
 	int num_clusters = 0;
-	struct cluster **tmp_clusters = malloc (A[i]->seqsize * sizeof (struct cluster*));
+	struct cluster *tmp_clusters[A[i]->seqsize];
 	struct clusterlist *C = malloc (sizeof (struct clusterlist));
 
 	// For every w in A_i - A_i+1
@@ -474,6 +479,7 @@ struct prepro *prepro (struct graph *graph, int k)
 
 	// k iterations
 	for (int i = k-1; i >= 0; i--) {
+		printf ("1 %d\n", i);
 		// copy of heap to work with for current i
 		// initialising the heap
 		heap = initialise_single_source_tz (graph);
@@ -485,7 +491,7 @@ struct prepro *prepro (struct graph *graph, int k)
 		min_heap_insert (heap, write_graph->V, 0, write_graph);
 		write_graph->V += 1;
 		n = write_graph->V;
-
+		printf ("2\n");
 		// compute d(A_i, v), running dijkstra once for each i
 		dist[i] = malloc (n * sizeof (struct node));
 		dist[i] = dijkstra_alg_tz (write_graph, heap);
@@ -495,23 +501,22 @@ struct prepro *prepro (struct graph *graph, int k)
 		printf ("prepro dijkstra result for i=%d\n", i);
 		pp_nodes (dist[i], n);
 		#endif
-
+		printf ("3\n");
 		// Finding the pivot elements, note p_k(v) undefined as A_k = Ø (as in the else case)
 		if (i != k-1) {
 			pivot_arr = find_pivot (pivot_nodes[i+1], dist[i], n);
 		} else {
 			pivot_arr = find_pivot (NULL, dist[i], n);
 		}
-
 		memcpy (&pivot_nodes[i], &pivot_arr, sizeof (struct node*));
 
 		#ifdef DEBUG
 		pp_pivots (pivot_nodes[i], nodes, n, i);
 		#endif
-
+		printf ("4\n");
 		C[i] = malloc (sizeof (struct clusterlist));
 		C[i] = construct_clusters (graph, A, pivot_nodes[i+1], i, k);
-
+		printf ("5\n");
 		#ifdef DEBUG
 		pp_clusters (C, i);
 		#endif
@@ -520,7 +525,9 @@ struct prepro *prepro (struct graph *graph, int k)
 		free_heap (heap);
 	}
 
+	printf ("6\n");
 	construct_bunches (C, k, bunchlist, pivot_nodes);
+	printf ("7\n");
 
 	#ifdef DEBUG
 	pp_bunches (bunchlist);
@@ -554,22 +561,20 @@ int dist (struct node *u, struct node *v, struct bunchlist *bunchlist)
 	struct node	*w;
 	int i = 0;
 	int dist = 0;
+	int result = 0;
 
 	// w = u = p_0(u)
 	w = u;
 
-	// query-algoritmen returnerer summen af to afstande i clusters.
 	// while w not in B(v)
 	while (1) {
 		struct node *out, *tmp;
-		printf ("B(%d) w_id:%d\n", v->v_id+offset, w->v_id+offset);
 		// checking if w in B(v), where nodes are vertices w in V
 		HASH_FIND_INT(bunchlist->bunches[v->v_id].nodes, &w->v_id, out);
 		if (out) {
-			dist = out->sp_est;
+			result = out->sp_est + dist;
 			break;
 		} else {
-			printf ("i=%d\n", i);
 			// i <- i + 1
 			i += 1;
 			// (u, v) <- (v, u)
@@ -578,10 +583,9 @@ int dist (struct node *u, struct node *v, struct bunchlist *bunchlist)
 			v = tmp;
 			// w <- p_i (u)
 			w = &bunchlist->bunches[u->v_id].piv[i];
-			printf ("w_id:%d, sp:%d u_id:%d v_id:%d\n", w->v_id+offset,
-					w->sp_est, u->v_id+offset, v->v_id+offset);
+			dist = w->sp_est;
 		}
 	}
 
-	return dist;
+	return result;
 }

@@ -1,0 +1,79 @@
+i=9
+1
+2
+3
+4
+i=8
+1
+2
+3
+4
+i=7
+1
+2
+3
+4
+i=6
+1
+2
+3
+4
+i=5
+1
+2
+3
+4
+i=4
+1
+2
+3
+4
+i=3
+1
+2
+3
+4
+i=2
+1
+2
+3
+4
+i=1
+1
+2
+3
+4
+i=0
+1
+2
+3
+4
+Time spent on prepro Thorup-Zwick: 57.999204
+Memory usage of prepro = 549217848 KB
+B(1000) w_id:100
+i=0
+w_id:1, sp:0 u_id:1000 v_id:100
+B(100) w_id:1
+i=1
+w_id:96, sp:9573 u_id:100 v_id:1000
+B(1000) w_id:96
+i=2
+w_id:1, sp:0 u_id:1000 v_id:100
+B(100) w_id:1
+i=3
+w_id:1689, sp:40095 u_id:100 v_id:1000
+B(1000) w_id:1689
+i=4
+w_id:1, sp:0 u_id:1000 v_id:100
+B(100) w_id:1
+i=5
+w_id:4676, sp:47607 u_id:100 v_id:1000
+B(1000) w_id:4676
+
+Result of Thorup-Zwick dist(100, 1000) = 132683
+Time spent on query Thorup-Zwick: 0.000125
+Memory usage of query = 549217848 KB
+
+Result of Dijkstra SSP (100, 1000) = 85076
+Time spent on running Dijkstra: 0.260661
+Memory usage of Dijkstra = 549261216 KB

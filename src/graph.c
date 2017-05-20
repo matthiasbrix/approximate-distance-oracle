@@ -33,6 +33,7 @@ void add_edges (struct graph *graph, int u, int v, unsigned int w)
 	graph->adjlists[v].head = node;
 }
 
+// TODO: Rigtig rækkefølge
 struct graph *copy_graph_struct (struct graph *old_graph, struct heap *heap)
 {
 	struct graph *graph = init_graph (old_graph->V+1);

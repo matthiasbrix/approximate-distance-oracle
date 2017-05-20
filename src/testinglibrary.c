@@ -33,12 +33,11 @@ void test_prepro ()
 	hi3 = hi3;
 	test ();
 	printf ("6 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm (), get_current_pm());
-	printf ("6 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm (), get_current_pm());
 
 	int k, n, u, v, d;
 	double cpu_time_spent;
 	k = 3, n = 5, u = 1, v = 4;
-	struct graph* graph = init_graph (n);
+	struct graph *graph = init_graph (n);
 	add_edges (graph, 0, 1, 10);
 	add_edges (graph, 0, 2, 5);
 	add_edges (graph, 0, 4, 7);
@@ -67,7 +66,7 @@ void test_prepro ()
 	cpu_time_spent = (double)(end2 - begin2) / CLOCKS_PER_SEC;
 	printf ("Time spent on query Thorup-Zwick: %f\n", cpu_time_spent);
 	printf ("Result of Thorup-Zwick dist (%d, %d) = %d\n", u, v, d);
-	printf ("Memory usage of prepro = %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm (), get_current_pm());
+	printf ("Memory usage of dist = %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm (), get_current_pm());
 
 	graph = init_graph (n);
 	add_edges (graph, 0, 1, 10);
@@ -85,7 +84,7 @@ void test_prepro ()
 	cpu_time_spent = (double)(end3 - begin3) / CLOCKS_PER_SEC;
 	printf ("Result of Dijkstra SSP (%d, %d) = %d\n", u, v, S[v-offset].sp_est);
 	printf ("Time spent on running Dijkstra: %f\n", cpu_time_spent);
-	printf ("Memory usage of prepro = %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm (), get_current_pm());
+	printf ("Memory usage of Dijkstra = %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm (), get_current_pm());
 }
 
 // Hardcoded tests from various sources

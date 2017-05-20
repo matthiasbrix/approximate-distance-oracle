@@ -9,13 +9,13 @@ struct tz_res {
   int k;
   double prepro_time;
   double dist_time;
-  unsigned long memory_consump;
+  int memory_consump;
 };
 
 struct dijkstra_res {
   int dist;
   double dist_time;
-  unsigned long memory_consump;
+  int memory_consump;
 };
 
 void read_from_file (struct graph *graph, const char *fname);

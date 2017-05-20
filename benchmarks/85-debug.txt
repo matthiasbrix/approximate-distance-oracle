@@ -1,0 +1,19 @@
+1 7500 KB 7496 KB 1044 KB
+2 1645900 KB 1645900 KB 1044 KB
+3 1645900 KB 1645900 KB 1044 KB
+4 3284304 KB 3284304 KB 1044 KB
+5 3284304 KB 3284304 KB 1044 KB
+5 4922708 KB 4922708 KB 1044 KB
+2 6561112 KB 6561112 KB 1044 KB
+6 6561112 KB 6561112 KB 1044 KB
+6 6561112 KB 6561112 KB 1044 KB
+Memory before running prepro = 6561112 KB 6561112 KB 1044 KB
+Time spent on prepro Thorup-Zwick: 0.000205
+Memory usage of prepro = 6561112 KB 6561112 KB 1044 KB
+B(4) w_id:1
+Time spent on query Thorup-Zwick: 0.000019
+Result of Thorup-Zwick dist (1, 4) = 4
+Memory usage of prepro = 6561112 KB 6561112 KB 1044 KB
+Result of Dijkstra SSP (1, 4) = 4
+Time spent on running Dijkstra: 0.000013
+Memory usage of prepro = 6561112 KB 6561112 KB 1044 KB

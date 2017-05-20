@@ -1,0 +1,5 @@
+test!!! dj tests/USANY.txt output.csv 10 100 1000
+
+Result of Dijkstra SSP (100, 1000) = 89028
+Time spent on running Dijkstra: 0.227939
+Memory usage of Dijkstra = 82008 KB

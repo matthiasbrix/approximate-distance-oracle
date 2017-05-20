@@ -1,6 +1,9 @@
-Time,Input file,Algorithm,k integer,vertex u,vertex v,d(u - v),prepro time (s),dist time (s),memory consumption (KB)
-Fri May 19 14:56:38 2017,tests/USANY.txt,Thorup-Zwick,10,10,2323,172269,65.442270,0.000034,549103916
-Fri May 19 14:56:38 2017,tests/USANY.txt,Dijkstra,,10,2323,139447,,0.261389,549147284
+Time,Input file,Algorithm,k integer,vertex u,vertex v,d(u +AC0- v),prepro time (s),dist time (s),prepro memory (KB),dist memory (KB),memory consumption (KB)
+Sat May 20 13:57:52 2017,tests/USANY.txt,Thorup+AC0-Zwick,10,100,1000,106257,55.940787,0.000162,549220116,762041000,1311261116
+Sat May 20 13:57:53 2017,tests/USANY.txt,Dijkstra,,100,1000,85076,,0.21699,,,82004
 
-Sat May 20 10:45:33 2017,tests/USASF.txt,Thorup-Zwick,5,100,1000,405466,447.304929,0.000126,812647224
-Sat May 20 10:45:33 2017,tests/USASF.txt,Dijkstra,,100,1000,397301,,0.381584,812699820
+Sat May 20 14:00:44 2017,tests/USANY.txt,Thorup-Zwick,10,100,1000,113083,68.554164,0.000018,549245284,767354728,549245284
+Sat May 20 14:00:46 2017,tests/USANY.txt,Dijkstra,,100,1000,85076,,0.248904,,,82004
+
+Sat May 20 14:08:58 2017,tests/USANY.txt,Thorup-Zwick,10,100,1337,138501,60.190249,0.000045,549145464,746316312,549145464
+Sat May 20 14:08:59 2017,tests/USANY.txt,Dijkstra,,100,1337,92955,,0.217366,,,82004

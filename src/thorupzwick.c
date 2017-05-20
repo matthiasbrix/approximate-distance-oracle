@@ -188,11 +188,6 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
 		exit (-1);
 	}
 
-	for (int i = 0; i < (int) graph->V; i++) {
-		in_heap[i] = 0;
-		relaxed[i] = 0;
-	}
-
 	Q->heap_size = 0;
 	// w.d = 0
 	min_heap_insert (Q, w->v_id, 0, graph);
@@ -306,6 +301,16 @@ struct clusterlist *construct_clusters (struct graph *graph, struct aseq **A,
 	return C;
 }
 
+size_t compute_bunch_size (struct bunchlist *bunchlist)
+{
+	size_t ds_size = 0;
+	for (int i = 0; i < bunchlist->num_bunches; i++) {
+		struct node *s = bunchlist->bunches[i].nodes;
+		ds_size += HASH_OVERHEAD (hh, s);
+	}
+	return ds_size;
+}
+
 /**
  * construct_bunches - constructing bunches for all v in V
  * @C: all clusters
@@ -340,6 +345,9 @@ void construct_bunches (struct clusterlist **C, int k,
 			}
 		}
 	}
+
+	bunchlist->bunch_size += compute_bunch_size (bunchlist);
+
 	return;
 }
 
@@ -440,6 +448,7 @@ struct prepro *prepro (struct graph *graph, int k)
 
 	bunchlist->num_bunches = n;
 	bunchlist->bunches = malloc (bunchlist->num_bunches * sizeof(struct bunch));
+	bunchlist->bunch_size = 0;
 
 	// saving all v in V in array nodes and Preparing for constructing the bunches
 	for (unsigned int i = 0; i < n; i++) {
@@ -449,6 +458,8 @@ struct prepro *prepro (struct graph *graph, int k)
 		bunchlist->bunches[i].piv = malloc (k * sizeof (struct node));
 		// Needed for hashing later, thus NULL
 		bunchlist->bunches[i].nodes = NULL;
+		bunchlist->bunches[i].num_nodes = 0;
+		bunchlist->bunch_size += (sizeof (struct node)) + (k * sizeof (struct node));
 	}
 
 	// Creating all A_i sequences
@@ -479,7 +490,6 @@ struct prepro *prepro (struct graph *graph, int k)
 
 	// k iterations
 	for (int i = k-1; i >= 0; i--) {
-		printf ("1 %d\n", i);
 		// copy of heap to work with for current i
 		// initialising the heap
 		heap = initialise_single_source_tz (graph);
@@ -491,7 +501,7 @@ struct prepro *prepro (struct graph *graph, int k)
 		min_heap_insert (heap, write_graph->V, 0, write_graph);
 		write_graph->V += 1;
 		n = write_graph->V;
-		printf ("2\n");
+
 		// compute d(A_i, v), running dijkstra once for each i
 		dist[i] = malloc (n * sizeof (struct node));
 		dist[i] = dijkstra_alg_tz (write_graph, heap);
@@ -501,7 +511,7 @@ struct prepro *prepro (struct graph *graph, int k)
 		printf ("prepro dijkstra result for i=%d\n", i);
 		pp_nodes (dist[i], n);
 		#endif
-		printf ("3\n");
+
 		// Finding the pivot elements, note p_k(v) undefined as A_k = Ø (as in the else case)
 		if (i != k-1) {
 			pivot_arr = find_pivot (pivot_nodes[i+1], dist[i], n);
@@ -513,10 +523,10 @@ struct prepro *prepro (struct graph *graph, int k)
 		#ifdef DEBUG
 		pp_pivots (pivot_nodes[i], nodes, n, i);
 		#endif
-		printf ("4\n");
+
 		C[i] = malloc (sizeof (struct clusterlist));
 		C[i] = construct_clusters (graph, A, pivot_nodes[i+1], i, k);
-		printf ("5\n");
+
 		#ifdef DEBUG
 		pp_clusters (C, i);
 		#endif
@@ -525,9 +535,7 @@ struct prepro *prepro (struct graph *graph, int k)
 		free_heap (heap);
 	}
 
-	printf ("6\n");
 	construct_bunches (C, k, bunchlist, pivot_nodes);
-	printf ("7\n");
 
 	#ifdef DEBUG
 	pp_bunches (bunchlist);

@@ -1,0 +1,5 @@
+test
+
+Result of Dijkstra SSP (100, 1000) = 89028
+Time spent on running Dijkstra: 0.233413
+Memory usage of Dijkstra = 82004 KB

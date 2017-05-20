@@ -36,6 +36,7 @@ struct bunch {
 struct bunchlist {
   struct bunch *bunches;
   int num_bunches;
+  size_t bunch_size;
 };
 
 struct prepro {

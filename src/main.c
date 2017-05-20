@@ -1,7 +1,7 @@
 #include "main.h"
-#include <sys/resource.h>
 
 int offset;
+#define MIN_REQUIRED 6
 
 // TODO: gdb:gcc -g -o prog myfile.c another.c
 // gdb prog
@@ -33,6 +33,7 @@ Fx. tænk på sleep - CPUen arbejder så ikke, således vil den ikke tælle det 
   preprocessing algorithm also outputs, for every w ∈ V, the shortest paths tree T (w)
   that spans the cluster C(w).
  */
+// HVilken compiler, CPU, RAM osv jeg bruger.
 // større k, mindre pladsforbrug
 // Mange kanter contra få kanter, kig også på forskellige k og knude mængder
 // Hvad der sker med prepro og query
@@ -51,8 +52,13 @@ Fx. tænk på sleep - CPUen arbejder så ikke, således vil den ikke tælle det 
 // TODO: SKal jeg genindlæs grafen når jeg kører dijkstra? Skal jeg overhovedet måle indlæsningen af knuderne?
 // Skriv i rapporten hvad der sker når grafen ikke er sammenhængende...
 
-// TODO: Reset memory usage to 0 after prepro
-// TODO: Find fejle i Thorup-Zwick output
+void help () {
+	printf ("To run, required arguments are as follows:\n");
+	printf ("./main <algorithm> <inputfile> <outputfile> <k integer> <u integer> <v integer>\n");
+	printf ("Possible input for each flag:\n");
+	printf ("<algorithm>: <dj>, <tz> \n");
+	return;
+}
 
 struct dijkstra_res *run_dijkstra (struct graph *graph, int u, int v)
 {
@@ -63,7 +69,7 @@ struct dijkstra_res *run_dijkstra (struct graph *graph, int u, int v)
 	double cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
 	printf ("\nResult of Dijkstra SSP (%d, %d) = %d\n", u, v, S[v-offset].sp_est);
 	printf ("Time spent on running Dijkstra: %f\n", cpu_time_spent);
-	printf ("Memory usage of Dijkstra = %d KB\n", get_vm_peak ());
+	printf ("Memory usage of Dijkstra = %d KB\n", get_vm_peak () / 1000);
 	dijkstra->dist = S[v-offset].sp_est;
 	dijkstra->dist_time = cpu_time_spent;
 	dijkstra->memory_consump = get_vm_peak ();
@@ -74,11 +80,11 @@ struct dijkstra_res *run_dijkstra (struct graph *graph, int u, int v)
 struct tz_res *run_tz (struct graph *graph, int k, int u, int v)
 {
 	struct tz_res *tz = malloc (sizeof (struct tz_res));
+	struct prepro *pp = malloc (sizeof (struct prepro));
 	clock_t begin, end;
 	double cpu_time_spent;
 
 	begin = clock();
-	struct prepro *pp = malloc (sizeof (struct prepro));
 	pp->success = false;
 	while (!pp->success) {
 		pp = prepro (graph, k);
@@ -87,8 +93,9 @@ struct tz_res *run_tz (struct graph *graph, int k, int u, int v)
 	end = clock();
 	cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
 	printf ("Time spent on prepro Thorup-Zwick: %f\n", cpu_time_spent);
-	printf ("Memory usage of prepro = %d KB\n", get_vm_peak());
+	printf ("Memory usage of prepro = %d KB\n", get_vm_peak() / 1000);
 	tz->prepro_time = cpu_time_spent;
+	tz->prepro_memory_consump = get_vm_peak();
 
 	begin = clock();
 	int d = dist (&pp->nodes[u-offset], &pp->nodes[v-offset], pp->bunchlist);
@@ -96,44 +103,49 @@ struct tz_res *run_tz (struct graph *graph, int k, int u, int v)
 	cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
 	printf ("\nResult of Thorup-Zwick dist(%d, %d) = %d\n", u, v, d);
 	printf ("Time spent on query Thorup-Zwick: %f\n", cpu_time_spent);
-	printf ("Memory usage of query = %d KB\n", get_vm_peak());
-
+	tz->dist_memory_consump = pp->bunchlist->bunch_size;
+	printf ("Memory usage of query (bunch size) = %d KB\n", tz->dist_memory_consump);
+	tz->dist_time = cpu_time_spent;
 	tz->dist = d;
 	tz->k = k;
-	tz->dist_time = cpu_time_spent;
-	tz->memory_consump = get_vm_peak();
 
 	return tz;
 }
 
 int main (int argc, char *argv[])
 {
+	// for debugging
 	if (argc == 1) {
 		offset = 0;
 		test_prepro ();
-	} else if ((argc-1) < 5 || (((argc-1) % 5) != 0)) {
+	}
+	if (strcmp ("--help", argv[1]) == 0) {
+		help ();
+	} else if ((argc-1) < MIN_REQUIRED || (((argc-1) % MIN_REQUIRED) != 0)) {
 		printf ("No input and output arguments or input/output does not match!\n");
 		printf ("Number of arguments is %d\n", argc);
-		printf ("To run, required is as follows ./main <inputfile> <outputfile> <k integer> <u integer> <v integer>");
+		help();
 		return EXIT_FAILURE;
 	} else {
+		// TODO: read offset in read file
 		offset = 1;
-		for (int i = 1; i < argc; i += 5) {
-			const char *fname_read = argv[i];
-			const char *fname_write = argv[i+1];
-			int k = atoi(argv[i+2]);
-			int u = atoi(argv[i+3]);
-			int v = atoi(argv[i+4]);
-			int n = count_vertices (fname_read);
+		for (int i = 1; i < argc; i += MIN_REQUIRED) {
+			const char *fname_read = argv[i+1];
+			const char *fname_write = argv[i+2];
+			const int u = atoi(argv[i+4]);
+			const int v = atoi(argv[i+5]);
 			struct graph *graph = malloc (sizeof (struct graph));
+			int n = count_vertices (fname_read);
 			graph =	init_graph (n);
 			read_from_file (graph, fname_read);
-			struct tz_res *tz = run_tz (graph, k, u, v);
-			graph = malloc (sizeof (struct graph));
-			graph =	init_graph (n);
-			read_from_file (graph, fname_read);
-			struct dijkstra_res *dijkstra = run_dijkstra (graph, u, v);
-			write_to_file (fname_write, fname_read, u, v, tz, dijkstra);
+			if (strcmp ("tz", argv[i]) == 0) {
+				const int k = atoi(argv[i+3]);
+				struct tz_res *tz = run_tz (graph, k, u, v);
+				write_to_file (fname_write, fname_read, u, v, tz, NULL);
+			} else if (strcmp ("dj", argv[i]) == 0) {
+				struct dijkstra_res *dijkstra = run_dijkstra (graph, u, v);
+				write_to_file (fname_write, fname_read, u, v, NULL, dijkstra);
+			}
 		};
 	}
 

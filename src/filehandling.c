@@ -1,5 +1,6 @@
 #include "filehandling.h"
 
+// TODO: not global
 FILE *file;
 
 int parse_line (char* line)
@@ -143,20 +144,25 @@ void write_to_file (const char *fname, const char *input_file, int u, int v,
 	fseek (file, 0, SEEK_END);
 	unsigned long len = (unsigned long)ftell(file);
 	if (len == 0) {
-		fprintf (file, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s", "Time", "Input file",
+		fprintf (file, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s", "Time", "Input file",
 				 "Algorithm", "k integer", "vertex u", "vertex v", "d(u - v)",
-				 "prepro time (s)", "dist time (s)", "memory consumption (KB)");
+				 "prepro time (s)", "dist time (s)", "prepro memory (KB)",
+				 "dist memory (KB)", "memory consumption (KB)");
 	}
 
 	time_t clk = time(NULL);
 	char *time = ctime(&clk);
 	time[strlen(time) - 1] = '\0';
-	fprintf (file, "\n%s,%s,%s,%d,%d,%d,%d,%f,%f,%d\n", time,
-			 input_file, "Thorup-Zwick", tz->k, u, v, tz->dist,
-			 tz->prepro_time, tz->dist_time, tz->memory_consump);
-	fprintf (file, "%s,%s,%s,%s,%d,%d,%d,%s,%f,%d\n", time,
-			 input_file, "Dijkstra", "", u, v, dijkstra->dist,
-			 "", dijkstra->dist_time, dijkstra->memory_consump);
+	if (tz != NULL) {
+		fprintf (file, "\n%s,%s,%s,%d,%d,%d,%d,%f,%f,%d,%d,%d\n", time,
+				 input_file, "Thorup-Zwick", tz->k, u, v, tz->dist,
+				 tz->prepro_time, tz->dist_time, tz->prepro_memory_consump,
+				 tz->dist_memory_consump, tz->prepro_memory_consump);
+	} else if (dijkstra != NULL) {
+		fprintf (file, "%s,%s,%s,%s,%d,%d,%d,%s,%f,%s,%s,%d\n", time,
+				 input_file, "Dijkstra", "", u, v, dijkstra->dist,
+				 "", dijkstra->dist_time, "", "", dijkstra->memory_consump);
+	}
 
 	if (fclose(file)) {
 		printf("Error closing file in write_to_file.");

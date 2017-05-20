@@ -1,0 +1,10 @@
+Time spent on prepro Thorup-Zwick: 66.997954
+Memory usage of prepro = 549383676 KB
+
+Result of Thorup-Zwick dist(1903, 2020) = 32042
+Time spent on query Thorup-Zwick: 0.000054
+Memory usage of query = 549383676 KB
+
+Result of Dijkstra SSP (1903, 2020) = 24748
+Time spent on running Dijkstra: 0.291131
+Memory usage of Dijkstra = 549427048 KB

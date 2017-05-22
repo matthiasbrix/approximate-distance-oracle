@@ -1,8 +1,7 @@
 #include "main.h"
 
-int offset;
 #define MIN_REQUIRED 6
-
+int offset = 0;
 // TODO: gdb:gcc -g -o prog myfile.c another.c
 // gdb prog
 // Skelne mellme køretiden af prepro og dist, samt pladsforbrug
@@ -51,6 +50,8 @@ Fx. tænk på sleep - CPUen arbejder så ikke, således vil den ikke tælle det 
 // hvilke eksperimenter og hvorfor. Vis så resultater.
 // TODO: SKal jeg genindlæs grafen når jeg kører dijkstra? Skal jeg overhovedet måle indlæsningen af knuderne?
 // Skriv i rapporten hvad der sker når grafen ikke er sammenhængende...
+// cat /proc/cpuinfo
+// https://stackoverflow.com/questions/63166/how-to-determine-cpu-and-memory-consumption-from-inside-a-process
 
 void help () {
 	printf ("To run, required arguments are as follows:\n");
@@ -116,14 +117,15 @@ int main (int argc, char *argv[])
 {
 	// for debugging
 	if (argc == 1) {
-		offset = 0;
-		test_prepro ();
+		hardcoded_tests ();
+		/* test_prepro (); */
+		return EXIT_SUCCESS;
 	}
 	if (strcmp ("--help", argv[1]) == 0) {
 		help ();
 	} else if ((argc-1) < MIN_REQUIRED || (((argc-1) % MIN_REQUIRED) != 0)) {
 		printf ("No input and output arguments or input/output does not match!\n");
-		printf ("Number of arguments is %d\n", argc);
+		printf ("Number of arguments is %d\n\n", argc);
 		help();
 		return EXIT_FAILURE;
 	} else {
@@ -134,20 +136,18 @@ int main (int argc, char *argv[])
 			const char *fname_write = argv[i+2];
 			const int u = atoi(argv[i+4]);
 			const int v = atoi(argv[i+5]);
-			struct graph *graph = malloc (sizeof (struct graph));
 			int n = count_vertices (fname_read);
-			graph =	init_graph (n);
+			struct graph *graph = init_graph (n);
 			read_from_file (graph, fname_read);
 			if (strcmp ("tz", argv[i]) == 0) {
 				const int k = atoi(argv[i+3]);
 				struct tz_res *tz = run_tz (graph, k, u, v);
-				write_to_file (fname_write, fname_read, u, v, tz, NULL);
+				write_to_file (fname_write, fname_read, n, u, v, tz, NULL);
 			} else if (strcmp ("dj", argv[i]) == 0) {
 				struct dijkstra_res *dijkstra = run_dijkstra (graph, u, v);
-				write_to_file (fname_write, fname_read, u, v, NULL, dijkstra);
+				write_to_file (fname_write, fname_read, n, u, v, NULL, dijkstra);
 			}
 		};
 	}
-
 	return EXIT_SUCCESS;
 }

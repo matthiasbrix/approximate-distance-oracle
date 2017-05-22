@@ -1,6 +1,6 @@
 #include "thorupzwick.h"
 
-// #define DEBUG
+#define DEBUG
 
 void pp_aseqs (struct aseq **A, int k)
 {
@@ -204,10 +204,10 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
 		for (struct adjlistnode *s = graph->adjlists[S[idx].v_id].head;
 			 s != NULL; s = s->next) {
 			struct node *v = graph->adjlists[s->v_id].nd;
-			if (((pivot_nodes != 0) && (v != NULL) &&
+			if ((i == k-1 && relaxed[s->v_id] == 0) ||
+				((pivot_nodes != 0) &&
 					 (u->sp_est + s->weight) < pivot_nodes[s->v_id].sp_est
-					 && relaxed[s->v_id] == 0) ||
-				(i == k-1 && v != NULL && relaxed[s->v_id] == 0)) {
+					 && relaxed[s->v_id] == 0)) {
 				int sp_est = u->sp_est + s->weight;
 				if (in_heap[s->v_id] == 1) {
 					if ((v->sp_est > sp_est)) {
@@ -265,25 +265,16 @@ struct clusterlist *construct_clusters (struct graph *graph, struct aseq **A,
 	// For every w in A_i - A_i+1
 	for (int w = 0; w < A[i]->seqsize; w++) {
 		// for every w ∈ A_k−1 we have C(w) = V
-		if (i == (k-1)) {
-			// create cluster C(w) = V, computing the distances from w to all other v in V
-			struct cluster *cw = dijkstra_cluster_tz (graph, &A[i]->nodes[w], NULL, k, i);
-			tmp_clusters[num_clusters] = malloc (sizeof (struct cluster));
-			memcpy (tmp_clusters[num_clusters], cw, sizeof (struct cluster));
-			num_clusters += 1;
-		} else {
-			// check if w in A_i - A_i+1
-			if (A[i+1]->added[A[i]->nodes[w].v_id]) {
-				continue;
-			} else {
-				// if indeed w in A_i - A_i+1, go on with dijkstra to create a cluster C(w)
-				struct cluster *cw = dijkstra_cluster_tz (graph, &A[i]->nodes[w],
-														  pivot_nodes, k, i);
-				tmp_clusters[num_clusters] = malloc (sizeof (struct cluster));
-				memcpy (tmp_clusters[num_clusters], cw, sizeof (struct cluster));
-				num_clusters += 1;
-			}
+		// check if w in A_i - A_i+1
+		if (i < (k-1) && A[i+1]->added[A[i]->nodes[w].v_id]) {
+			continue;
 		}
+		// if indeed w in A_i - A_i+1, go on with dijkstra to create a cluster C(w)
+		// create cluster C(w) = V, computing the distances from w to all other v in V
+		struct cluster *cw = dijkstra_cluster_tz (graph, &A[i]->nodes[w], pivot_nodes, k, i);
+		tmp_clusters[num_clusters] = malloc (sizeof (struct cluster));
+		memcpy (tmp_clusters[num_clusters], cw, sizeof (struct cluster));
+		num_clusters += 1;
 	}
 
 	C->clusters = malloc (num_clusters * sizeof (struct cluster));
@@ -437,9 +428,8 @@ struct prepro *prepro (struct graph *graph, int k)
 	struct node *nodes = malloc (n * sizeof (struct node));
 	// k+1, for the kth set where d(A_k, v) = infinity for all v in V
 	struct node *dist[k+1];
-	// For each v the pivot node to each i, thus v*k
-	struct node *pivot_nodes[k];
-	struct node *pivot_arr;
+	// For each v the pivot node to each i
+	struct node *pivot_nodes[k+1];
 	struct aseq *A[k];
 	struct heap *heap;
 	struct clusterlist *C[k];
@@ -487,6 +477,8 @@ struct prepro *prepro (struct graph *graph, int k)
 
 	// d(A_k, v) = infinity, thus NULL
 	dist[k] = NULL;
+	// p_k(v) undefined as A_k = Ø
+	pivot_nodes[k] = NULL;
 
 	// k iterations
 	for (int i = k-1; i >= 0; i--) {
@@ -503,7 +495,6 @@ struct prepro *prepro (struct graph *graph, int k)
 		n = write_graph->V;
 
 		// compute d(A_i, v), running dijkstra once for each i
-		dist[i] = malloc (n * sizeof (struct node));
 		dist[i] = dijkstra_alg_tz (write_graph, heap);
 
 		#ifdef DEBUG
@@ -512,19 +503,13 @@ struct prepro *prepro (struct graph *graph, int k)
 		pp_nodes (dist[i], n);
 		#endif
 
-		// Finding the pivot elements, note p_k(v) undefined as A_k = Ø (as in the else case)
-		if (i != k-1) {
-			pivot_arr = find_pivot (pivot_nodes[i+1], dist[i], n);
-		} else {
-			pivot_arr = find_pivot (NULL, dist[i], n);
-		}
-		memcpy (&pivot_nodes[i], &pivot_arr, sizeof (struct node*));
+		// Finding the pivot elements
+		pivot_nodes[i] = find_pivot (pivot_nodes[i+1], dist[i], n);
 
 		#ifdef DEBUG
 		pp_pivots (pivot_nodes[i], nodes, n, i);
 		#endif
 
-		C[i] = malloc (sizeof (struct clusterlist));
 		C[i] = construct_clusters (graph, A, pivot_nodes[i+1], i, k);
 
 		#ifdef DEBUG
@@ -541,9 +526,7 @@ struct prepro *prepro (struct graph *graph, int k)
 	pp_bunches (bunchlist);
 	#endif
 
-	prepro->nodes = malloc (graph->V * sizeof(struct node));
 	prepro->nodes = nodes;
-	prepro->bunchlist = malloc (sizeof (struct bunchlist));
 	prepro->bunchlist = bunchlist;
 	prepro->success = true;
 	prepro->k = k;
@@ -552,6 +535,8 @@ struct prepro *prepro (struct graph *graph, int k)
 
 	return prepro;
 }
+
+// TODO tjek query...
 
 /**
  * dist - distance query of (u, v) with the data structures

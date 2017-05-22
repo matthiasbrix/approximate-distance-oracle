@@ -12,6 +12,10 @@
 
 /* You can limit a process's resident set size to avoid having a single application "eat up" all the RAM on your system and forcing other applications to swap (or fail entirely with out-of-memory conditions). */
 
+#define SetBit(A,k) ( A[(k/32)] |= (1 << (k%32)) )
+#define ClearBit(A,k)   ( A[(k/32)] &= ~(1 << (k%32)) )
+#define TestBit(A,k)    ( A[(k/32)] & (1 << (k%32)) )
+
 typedef struct {
 	unsigned long size,resident,share,text,lib,data,dt;
 } statm_t;
@@ -39,10 +43,41 @@ void read_off_memory_status()
 
 
 // cat /proc/self/statm
-int main () {
+int main( int argc, char* argv[] )
+{
+	argc = argc;
+	argv = argv;
+   int A[10];
+   int i;
+
+   for ( i = 0; i < 10; i++ )
+	  A[i] = 0;                    // Clear the bit array
+
+   printf("Set bit poistions 100, 200 and 300\n");
+   SetBit( A, 1 );               // Set 3 bits
+   SetBit( A, 2 );
+   SetBit( A, 3 );
+
+
+   // Check if SetBit() works:
+
+   for ( i = 0; i < 320; i++ )
+	  if ( TestBit(A, i) )
+		 printf("Bit %d was set !\n", i);
+
+   printf("\nClear bit poistions 200 \n");
+   ClearBit( A, 2 );
+
+   // Check if ClearBit() works:
+
+   for ( i = 0; i < 4; i++ )
+	  if ( TestBit(A, i) )
+		 printf("Bit %d was set !\n", i);
+  return 0;
+}
 
 	/* FILE* status = fopen( "/proc/self/status", "r" ); */
-	read_off_memory_status ();
+//	read_off_memory_status ();
 	/* int i = 0; */
 	/* struct rusage r_usage; */
 	/* while (++i <= 10) { */
@@ -56,8 +91,6 @@ int main () {
 	/* getrusage(RUSAGE_SELF,&r_usage); */
 	/* printf("Memory usage = %ld KB\n", r_usage.ru_maxrss); */
 
-  return 0;
-}
 
 /* #include <stdlib.h> */
 /* #include <stdio.h> */

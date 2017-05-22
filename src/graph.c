@@ -51,20 +51,6 @@ struct graph *copy_graph_struct (struct graph *old_graph, struct heap *heap)
 	return graph;
 }
 
-/* struct graph *copy_graph_struct (struct graph *old_graph, struct heap *heap) */
-/* { */
-/* 	struct graph *new_graph = malloc (sizeof (struct graph)); */
-/* 	new_graph->adjlists = malloc ((old_graph->V+1) * sizeof (struct adjlist)); */
-/* 	// cpy all adjlists to write graph struct */
-/* 	for (unsigned int a = 0; a < old_graph->V; a++) { */
-/* 		memcpy (&new_graph->adjlists[a], &old_graph->adjlists[a], sizeof (struct adjlist)); */
-/* 		memcpy (&new_graph->adjlists[a].nd, &heap->nodes[a], sizeof (struct node*)); */
-/* 	} */
-/* 	new_graph->V = old_graph->V; */
-
-/* 	return new_graph; */
-/* } */
-
 // O(n)
 struct heap *initialise_single_source_tz (struct graph *graph)
 {
@@ -125,56 +111,6 @@ void free_graph (struct graph *graph)
 	}
 	FREE (graph);
 }
-
-/* struct node *bidirectional_dijkstra (struct graph *graph, struct node *u, struct node *v) */
-/* { */
-/* 	struct node *S = malloc (Q->heap_size * sizeof (struct node)); */
-/* 	int *in_QG_heap = calloc (graph->V, sizeof (int)); */
-/* 	int *in_QI_heap = calloc (graph->V, sizeof (int)); */
-/* 	struct heap *QI = malloc (sizeof (struct heap)); */
-/* 	QI->nodes = malloc (graph->V * sizeof(struct node*)); */
-/* 	struct heap *QG = malloc (sizeof (struct heap)); */
-/* 	QG->nodes = malloc (graph->V * sizeof(struct node*)); */
-
-/* 	min_heap_insert (QI, u->v_id, 0, graph); */
-/* 	min_heap_insert (QG, v->v_id, 0, graph); */
-
-/* 	while (QI->heap_size != 0 && QG->heap_size != 0) { */
-/* 		if (QI->heap_size != 0) { */
-/* 			struct node *u = extract_min (QI); */
-/* 			memcpy (&S[u->v_id], u, sizeof (struct node)); */
-/* 			if (u->v_id == v->v_id || in_QG_heap[u->v_id]) { */
-/* 				return success; */
-/* 			} */
-/* 			for (struct adjlistnode *s = graph->adjlists[u->v_id].head; */
-/* 				 s != NULL; s = s->next) { */
-/* 				struct node *v = graph->adjlists[s->v_id].nd; */
-/* 				if ((v != NULL) && (v->sp_est > u->sp_est + s->weight)) { */
-/* 					int sp_est = u->sp_est + s->weight; */
-/* 					decrease_key (Q, v, u, sp_est); */
-/* 				} */
-/* 			} */
-/* 			// avoiding the u node can be relaxed again */
-/* 			graph->adjlists[u->v_id].nd = NULL; */
-/* 		} */
-/* 		if (Q2->heap_size != 0) { */
-/* 			struct node *u = extract_min (Q); */
-/* 			memcpy (&S[u->v_id], u, sizeof (struct node)); */
-/* 			for (struct adjlistnode *s = graph->adjlists[u->v_id].head; */
-/* 			 s != NULL; s = s->next) { */
-/* 				struct node *v = graph->adjlists[s->v_id].nd; */
-/* 				if ((v != NULL) && (v->sp_est > u->sp_est + s->weight)) { */
-/* 					int sp_est = u->sp_est + s->weight; */
-/* 					decrease_key (Q, v, u, sp_est); */
-/* 			} */
-/* 			} */
-/* 			// avoiding the u node can be relaxed again */
-/* 			graph->adjlists[u->v_id].nd = NULL; */
-/* 		} */
-/* 	} */
-
-/* 	return S; */
-/* } */
 
 void pp_graph (struct graph *graph)
 {

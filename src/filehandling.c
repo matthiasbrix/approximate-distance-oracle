@@ -1,6 +1,5 @@
 #include "filehandling.h"
 
-// TODO: not global
 FILE *file;
 
 int parse_line (char* line)
@@ -18,7 +17,7 @@ int parse_line (char* line)
 // Current VM value Note: this value is in KB!
 int get_current_vm ()
 {
-	FILE *file = fopen("/proc/self/status", "r");
+	file = fopen("/proc/self/status", "r");
 	int result = -1;
 	char line[128];
 
@@ -35,30 +34,10 @@ int get_current_vm ()
 	return result;
 }
 
-// PM, Note: this value is in KB!
-int get_current_pm ()
-{
-	FILE *file = fopen("/proc/self/status", "r");
-	int result = -1;
-	char line[128];
-
-	while (fgets(line, 128, file) != NULL){
-		if (strncmp(line, "VmRSS:", 6) == 0) {
-			result = parse_line(line);
-			break;
-		}
-	}
-	if (fclose(file)) {
-		printf("Error closing file.");
-		exit (EXIT_FAILURE);
-	}
-	return result;
-}
-
 // Peak VM, Note: this value is in KB!
 int get_vm_peak ()
 {
-	FILE *file = fopen("/proc/self/status", "r");
+	file = fopen("/proc/self/status", "r");
 	int result = -1;
 	char line[128];
 
@@ -87,8 +66,8 @@ void read_from_file (struct graph *graph, const char *fname)
 		exit (EXIT_FAILURE);
 
 	while (!feof(file)) {
-		int no_match = fscanf (file, "%c %d %d %d\n", &t, &u, &v, &w);
-		if (no_match == 4 && (i % 2) == 0 && t == 'a') {
+		int num_match = fscanf (file, "%c %d %d %d\n", &t, &u, &v, &w);
+		if (num_match == 4 && (i % 2) == 0 && t == 'a') {
 			// If e.g 1 is used in input,
 			// subtract the offset such that begin is 0
 			add_edges (graph, u-offset, v-offset, w);
@@ -104,25 +83,22 @@ void read_from_file (struct graph *graph, const char *fname)
 	return;
 }
 
+// In DIMACS-like files p stands for the problem line, means it is unique and must appear as the first non-comment line. This line has the format on the right, where n and m are the number of nodes and the number of arcs, respectively.
 int count_vertices (const char *fname)
 {
 	file = fopen (fname, "r");
-	char t;
-	int u, v, w, i, count;
-
-	i = 0;
-	count = 0;
+	char p[256];
+	char t[256];
+	int n, m;
 
 	if (file == NULL)
 		exit (EXIT_FAILURE);
 
 	while (!feof(file)) {
-		int no_match = fscanf (file, "%c %d %d %d\n", &t, &u, &v, &w);
-		if (no_match == 4 && (i % 2) == 0 && t == 'a') {
-			count = u > count ? u : count;
-			count = v > count ? v : count;
+		int no_match = fscanf (file, "%s %s %d %d\n", p, t, &n, &m);
+		if (no_match == 4) {
+			break;
 		}
-		i++;
 	}
 
 	if (fclose(file)) {
@@ -130,10 +106,10 @@ int count_vertices (const char *fname)
 		exit (EXIT_FAILURE);
 	}
 
-	return count;
+	return n;
 }
 
-void write_to_file (const char *fname, const char *input_file, int u, int v,
+void write_to_file (const char *fname, const char *input_file, int n, int u, int v,
 					struct tz_res *tz, struct dijkstra_res *dijkstra)
 {
 	file = fopen (fname, "a+");
@@ -144,8 +120,8 @@ void write_to_file (const char *fname, const char *input_file, int u, int v,
 	fseek (file, 0, SEEK_END);
 	unsigned long len = (unsigned long)ftell(file);
 	if (len == 0) {
-		fprintf (file, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s", "Time", "Input file",
-				 "Algorithm", "k integer", "vertex u", "vertex v", "d(u - v)",
+		fprintf (file, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s", "Time", "Input file",
+				 "Algorithm", "n=|V| (# vertices)", "k integer", "vertex u", "vertex v", "d(u - v)",
 				 "prepro time (s)", "dist time (s)", "prepro memory (KB)",
 				 "dist memory (KB)", "memory consumption (KB)");
 	}
@@ -154,13 +130,13 @@ void write_to_file (const char *fname, const char *input_file, int u, int v,
 	char *time = ctime(&clk);
 	time[strlen(time) - 1] = '\0';
 	if (tz != NULL) {
-		fprintf (file, "\n%s,%s,%s,%d,%d,%d,%d,%f,%f,%d,%d,%d\n", time,
-				 input_file, "Thorup-Zwick", tz->k, u, v, tz->dist,
+		fprintf (file, "\n%s,%s,%s,%d,%d,%d,%d,%d,%f,%f,%d,%d,%d\n", time,
+				 input_file, "Thorup-Zwick", n, tz->k, u, v, tz->dist,
 				 tz->prepro_time, tz->dist_time, tz->prepro_memory_consump,
 				 tz->dist_memory_consump, tz->prepro_memory_consump);
 	} else if (dijkstra != NULL) {
-		fprintf (file, "%s,%s,%s,%s,%d,%d,%d,%s,%f,%s,%s,%d\n", time,
-				 input_file, "Dijkstra", "", u, v, dijkstra->dist,
+		fprintf (file, "%s,%s,%s,%d,%s,%d,%d,%d,%s,%f,%s,%s,%d\n", time,
+				 input_file, "Dijkstra", n, "", u, v, dijkstra->dist,
 				 "", dijkstra->dist_time, "", "", dijkstra->memory_consump);
 	}
 

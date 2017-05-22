@@ -1,6 +1,6 @@
 #include "thorupzwick.h"
 
-#define DEBUG
+// #define DEBUG
 
 void pp_aseqs (struct aseq **A, int k)
 {

@@ -19,10 +19,15 @@ struct dijkstra_res {
   int memory_consump;
 };
 
+struct graph_data {
+  int n;
+  int m;
+};
+
 void read_from_file (struct graph *graph, const char *fname);
-void write_to_file (const char *fname, const char *input_file, int n, int u, int v,
+void write_to_file (const char *fname, const char *input_file, int n, int m, int u, int v,
                     struct tz_res *tz, struct dijkstra_res *dijkstra);
-int count_vertices (const char *fname);
+struct graph_data *count_vertices (const char *fname);
 int get_current_vm ();
 int get_vm_peak ();
 

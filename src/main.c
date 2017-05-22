@@ -2,6 +2,8 @@
 
 #define MIN_REQUIRED 6
 int offset = 0;
+// for test graphs: http://www.info.univ-angers.fr/pub/porumbel/graphs/index.html#vss
+// generator: http://illuminations.nctm.org/Activity.aspx?id=3550
 // TODO: gdb:gcc -g -o prog myfile.c another.c
 // gdb prog
 // Skelne mellme køretiden af prepro og dist, samt pladsforbrug
@@ -126,7 +128,7 @@ int main (int argc, char *argv[])
 	} else if ((argc-1) < MIN_REQUIRED || (((argc-1) % MIN_REQUIRED) != 0)) {
 		printf ("No input and output arguments or input/output does not match!\n");
 		printf ("Number of arguments is %d\n\n", argc);
-		help();
+		help ();
 		return EXIT_FAILURE;
 	} else {
 		// TODO: read offset in read file
@@ -136,16 +138,16 @@ int main (int argc, char *argv[])
 			const char *fname_write = argv[i+2];
 			const int u = atoi(argv[i+4]);
 			const int v = atoi(argv[i+5]);
-			int n = count_vertices (fname_read);
-			struct graph *graph = init_graph (n);
+			struct graph_data *gd = count_vertices (fname_read);
+			struct graph *graph = init_graph (gd->n);
 			read_from_file (graph, fname_read);
 			if (strcmp ("tz", argv[i]) == 0) {
 				const int k = atoi(argv[i+3]);
 				struct tz_res *tz = run_tz (graph, k, u, v);
-				write_to_file (fname_write, fname_read, n, u, v, tz, NULL);
+				write_to_file (fname_write, fname_read, gd->n, gd->m, u, v, tz, NULL);
 			} else if (strcmp ("dj", argv[i]) == 0) {
 				struct dijkstra_res *dijkstra = run_dijkstra (graph, u, v);
-				write_to_file (fname_write, fname_read, n, u, v, NULL, dijkstra);
+				write_to_file (fname_write, fname_read, gd->n, gd->m, u, v, NULL, dijkstra);
 			}
 		};
 	}

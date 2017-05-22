@@ -84,10 +84,10 @@ void read_from_file (struct graph *graph, const char *fname)
 }
 
 // In DIMACS-like files p stands for the problem line, means it is unique and must appear as the first non-comment line. This line has the format on the right, where n and m are the number of nodes and the number of arcs, respectively.
-int count_vertices (const char *fname)
+struct graph_data *count_vertices (const char *fname)
 {
 	file = fopen (fname, "r");
-	char p[256];
+	char p;
 	char t[256];
 	int n, m;
 
@@ -95,8 +95,8 @@ int count_vertices (const char *fname)
 		exit (EXIT_FAILURE);
 
 	while (!feof(file)) {
-		int no_match = fscanf (file, "%s %s %d %d\n", p, t, &n, &m);
-		if (no_match == 4) {
+		int no_match = fscanf (file, "%s %s %d %d\n", &p, t, &n, &m);
+		if (no_match == 4 && p == 'p') {
 			break;
 		}
 	}
@@ -106,10 +106,14 @@ int count_vertices (const char *fname)
 		exit (EXIT_FAILURE);
 	}
 
-	return n;
+	struct graph_data *gd = malloc (sizeof (struct graph_data));
+	gd->n = n;
+	gd->m = m;
+
+	return gd;
 }
 
-void write_to_file (const char *fname, const char *input_file, int n, int u, int v,
+void write_to_file (const char *fname, const char *input_file, int n, int m, int u, int v,
 					struct tz_res *tz, struct dijkstra_res *dijkstra)
 {
 	file = fopen (fname, "a+");
@@ -120,8 +124,8 @@ void write_to_file (const char *fname, const char *input_file, int n, int u, int
 	fseek (file, 0, SEEK_END);
 	unsigned long len = (unsigned long)ftell(file);
 	if (len == 0) {
-		fprintf (file, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s", "Time", "Input file",
-				 "Algorithm", "n=|V| (# vertices)", "k integer", "vertex u", "vertex v", "d(u - v)",
+		fprintf (file, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s", "Time", "Input file",
+				 "Algorithm", "n=|V| (# vertices)", "m=|E| (# edges)","k integer", "vertex u", "vertex v", "d(u - v)",
 				 "prepro time (s)", "dist time (s)", "prepro memory (KB)",
 				 "dist memory (KB)", "memory consumption (KB)");
 	}
@@ -130,13 +134,13 @@ void write_to_file (const char *fname, const char *input_file, int n, int u, int
 	char *time = ctime(&clk);
 	time[strlen(time) - 1] = '\0';
 	if (tz != NULL) {
-		fprintf (file, "\n%s,%s,%s,%d,%d,%d,%d,%d,%f,%f,%d,%d,%d\n", time,
-				 input_file, "Thorup-Zwick", n, tz->k, u, v, tz->dist,
+		fprintf (file, "\n%s,%s,%s,%d,%d,%d,%d,%d,%d,%f,%f,%d,%d,%d\n", time,
+				 input_file, "Thorup-Zwick", n, m, tz->k, u, v, tz->dist,
 				 tz->prepro_time, tz->dist_time, tz->prepro_memory_consump,
 				 tz->dist_memory_consump, tz->prepro_memory_consump);
 	} else if (dijkstra != NULL) {
-		fprintf (file, "%s,%s,%s,%d,%s,%d,%d,%d,%s,%f,%s,%s,%d\n", time,
-				 input_file, "Dijkstra", n, "", u, v, dijkstra->dist,
+		fprintf (file, "%s,%s,%s,%d,%d,%s,%d,%d,%d,%s,%f,%s,%s,%d\n", time,
+				 input_file, "Dijkstra", n, m, "", u, v, dijkstra->dist,
 				 "", dijkstra->dist_time, "", "", dijkstra->memory_consump);
 	}
 

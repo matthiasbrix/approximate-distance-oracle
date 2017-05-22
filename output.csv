@@ -1,24 +1,20 @@
-Time,Input file,Algorithm,n+AD0AfA-V+AHw- (+ACM- vertices),k integer,vertex u,vertex v,d(u +AC0- v),prepro time (s),dist time (s),prepro memory (KB),dist memory (KB),memory consumption (KB)
-Sat May 20 18:16:00 2017,tests/USANY.txt,Thorup+AC0-Zwick,264346,10,100,1337,145706,59.227005,0.000204,549187688,755210512,549187688
-Sat May 20 18:16:02 2017,tests/USANY.txt,Dijkstra,264346,,100,1337,92955,,0.223622,,,82004
-,,,,,,,,,,,,
-Sun May 21 12:36:20 2017,tests/USANY.txt,Thorup+AC0-Zwick,264346,10,100,1337,173494,59.984051,0.000098,549219876,761995136,549219876
-Sun May 21 12:36:21 2017,tests/USANY.txt,Dijkstra,264346,,100,1337,92955,,0.235656,,,82004
-,,,,,,,,,,,,
-Sun May 21 19:27:51 2017,tests/USANY.txt,Thorup+AC0-Zwick,264346,10,100,1000,121377,66.442437,0.000015,549002348,759682504,549002348
-Sun May 21 19:27:52 2017,tests/USANY.txt,Dijkstra,264346,,100,1000,85076,,0.227073,,,82004
-,,,,,,,,,,,,
-Sun May 21 19:31:10 2017,tests/USANY.txt,Thorup+AC0-Zwick,264346,10,100,1000,129872,91.27049,0.000015,549158704,792652952,549158704
-Sun May 21 19:31:11 2017,tests/USANY.txt,Dijkstra,264346,,100,1000,85076,,0.225888,,,82004
-,,,,,,,,,,,,
-Sun May 21 19:34:01 2017,tests/USANY.txt,Thorup+AC0-Zwick,264346,10,100,1000,209228,104.614619,0.000151,548894796,736999088,548894796
-Sun May 21 19:34:02 2017,tests/USANY.txt,Dijkstra,264346,,100,1000,85076,,0.23182,,,82004
-,,,,,,,,,,,,
-Sun May 21 20:23:12 2017,tests/USANY.txt,Thorup+AC0-Zwick,264346,10,112,114,33469,66.788859,0.000041,548980588,755091456,548980588
-Sun May 21 20:23:13 2017,tests/USANY.txt,Dijkstra,264346,,112,114,7011,,0.239739,,,82004
-,,,,,,,,,,,,
-Sun May 21 21:24:28 2017,tests/USANY.txt,Thorup+AC0-Zwick,264346,13,4873,111111,655905,69.776211,0.000137,549009200,768550520,549009200
-Sun May 21 21:24:29 2017,tests/USANY.txt,Dijkstra,264346,,4873,111111,569827,,0.234818,,,82004
+Time,Input file,Algorithm,n=|V| (# vertices),m=|E| (# edges),k integer,vertex u,vertex v,d(u - v),prepro time (s),dist time (s),prepro memory (KB),dist memory (KB),memory consumption (KB)
+Mon May 22 19:17:47 2017,tests/densegraph.txt,Thorup-Zwick,500,224874,5,100,200,13,0.262571,0.000008,25592,802120,25592
+Mon May 22 19:17:47 2017,tests/densegraph.txt,Dijkstra,500,224874,,100,200,13,,0.011201,,,14624
 
-Mon May 22 09:19:56 2017,tests/samplegraph.txt,Thorup-Zwick,5,3,2,5,4,0.000175,0.000015,7500,5040,7500
-Mon May 22 09:19:56 2017,tests/samplegraph.txt,Dijkstra,5,,2,5,4,,0.000013,,,7500
+Mon May 22 20:15:13 2017,tests/sparsegraph.txt,Thorup-Zwick,500,12458,5,100,200,230,0.030439,0.000019,13264,872904,13264
+Mon May 22 20:15:13 2017,tests/sparsegraph.txt,Dijkstra,500,12458,,100,200,201,,0.002500,,,8288
+Mon May 22 20:48:42 2017,tests/densegraph.txt,Dijkstra,500,224874,,5,200,24,,0.011066,,,14492
+
+Mon May 22 20:48:51 2017,tests/densegraph.txt,Thorup-Zwick,500,224874,5,5,200,24,0.281315,0.000011,25512,818248,25512
+
+Mon May 22 20:48:56 2017,tests/densegraph.txt,Thorup-Zwick,500,224874,5,5,200,37,0.334560,0.000005,25692,846360,25692
+
+Mon May 22 20:49:00 2017,tests/densegraph.txt,Thorup-Zwick,500,224874,5,5,200,32,0.281169,0.000012,25496,804136,25496
+
+Mon May 22 20:50:38 2017,tests/sparsegraph.txt,Thorup-Zwick,500,12458,5,5,200,269,0.054009,0.000013,13560,937416,13560
+Mon May 22 20:50:55 2017,tests/sparsegraph.txt,Dijkstra,500,12458,,5,200,138,,0.001972,,,8288
+
+Mon May 22 20:51:03 2017,tests/sparsegraph.txt,Thorup-Zwick,500,12458,5,5,200,198,0.029051,0.000015,13180,845520,13180
+
+Mon May 22 20:51:10 2017,tests/sparsegraph.txt,Thorup-Zwick,500,12458,5,5,200,210,0.051712,0.000010,13536,844568,13536

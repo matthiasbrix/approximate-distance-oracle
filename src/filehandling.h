@@ -30,5 +30,6 @@ void write_to_file (const char *fname, const char *input_file, int n, int m, int
 struct graph_data *count_vertices (const char *fname);
 int get_current_vm ();
 int get_vm_peak ();
+int read_offset_in_file (const char *fname);
 
 #endif

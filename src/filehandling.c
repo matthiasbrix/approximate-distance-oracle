@@ -83,6 +83,35 @@ void read_from_file (struct graph *graph, const char *fname)
 	return;
 }
 
+int read_offset_in_file (const char *fname)
+{
+	char t;
+	int u, v, w, i, offset;
+
+	offset = (int) INFINITY;
+	file = fopen (fname, "r");
+
+	if (file == NULL)
+		exit (EXIT_FAILURE);
+
+	while (!feof(file)) {
+		int num_match = fscanf (file, "%c %d %d %d\n", &t, &u, &v, &w);
+		if (num_match == 4 && (i % 2) == 0 && t == 'a') {
+			offset = u < offset ? u : offset;
+			offset = v < offset ? v : offset;
+		}
+		i++;
+	}
+
+	if (fclose(file)) {
+		printf("Error closing file.");
+		exit (EXIT_FAILURE);
+	}
+
+	return offset;
+}
+
+
 // In DIMACS-like files p stands for the problem line, means it is unique and must appear as the first non-comment line. This line has the format on the right, where n and m are the number of nodes and the number of arcs, respectively.
 struct graph_data *count_vertices (const char *fname)
 {

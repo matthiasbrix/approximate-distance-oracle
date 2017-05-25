@@ -12,5 +12,6 @@
 void test_prepro ();
 void hardcoded_tests ();
 struct node *dijkstra_alg (struct graph *graph, int s);
+int bidirectional_dijkstra (struct graph *graph, int xi, int xg);
 
 #endif

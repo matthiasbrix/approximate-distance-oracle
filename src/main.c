@@ -14,13 +14,9 @@ CLOCKS_PER_SEC is a constant which is declared in time.h. To get the CPU time us
 returns the amount of time the OS has spent running your process, and not the actual amount of time elapsed. However, this is fine for timing a block of code, but not measuring time elapsing in the real world
 Fx. tænk på sleep - CPUen arbejder så ikke, således vil den ikke tælle det med
 */
-
+// Hvad nu fx. hvis k = 3, og mængder p_1 = p_2 så er der ingen cluster i i=1. Så giver det problemer i dist query algoritmen.
 // TODO: Lav i filehandling en funktion til at lave lookup af distancen (u, v) i output.csv
 // TODO: tid, plads, og hvor tæt kommer jeg på Dijkstras (SSP)
-
-// TODO: Lav script, hvor jeg kan kalde med bogtstaver, og så incrementer test fil navne
-// Og så hvad k er lig med
-
 // tid, plads skal være hardware.
 // Stemmer ekspirementerne overens med teori?
 // du skal dog nævne i din rapport, hvilken hash table du bruger
@@ -56,10 +52,15 @@ Fx. tænk på sleep - CPUen arbejder så ikke, således vil den ikke tælle det 
 // https://stackoverflow.com/questions/63166/how-to-determine-cpu-and-memory-consumption-from-inside-a-process
 
 void help () {
-	printf ("To run, required arguments are as follows:\n");
+	printf ("\nTo run, required arguments are as follows:\n");
 	printf ("./main <algorithm> <inputfile> <outputfile> <k integer> <u integer> <v integer>\n");
-	printf ("Possible input for each flag:\n");
+	printf ("\nPossible input for each flag:\n\n");
 	printf ("<algorithm>: <dj>, <tz> \n");
+	printf ("<inputfile>: tests/USANY.txt (needs to be of DIMACS ssp file format) \n");
+	printf ("<outputfile>: output.csv (will be generated automatically) \n");
+	printf ("<k integer>: Any integer that satisfies k >= 0 \n");
+	printf ("<u integer>: Any integer that represents a node from <inputfile> \n");
+	printf ("<v integer>: Any integer that represents a node from <inputfile> \n\n");
 	return;
 }
 
@@ -119,8 +120,8 @@ int main (int argc, char *argv[])
 {
 	// for debugging
 	if (argc == 1) {
-		hardcoded_tests ();
-		/* test_prepro (); */
+		/* hardcoded_tests (); */
+		test_prepro ();
 		return EXIT_SUCCESS;
 	}
 	if (strcmp ("--help", argv[1]) == 0) {
@@ -131,10 +132,9 @@ int main (int argc, char *argv[])
 		help ();
 		return EXIT_FAILURE;
 	} else {
-		// TODO: read offset in read file
-		offset = 1;
 		for (int i = 1; i < argc; i += MIN_REQUIRED) {
 			const char *fname_read = argv[i+1];
+			offset = read_offset_in_file (fname_read);
 			const char *fname_write = argv[i+2];
 			const int u = atoi(argv[i+4]);
 			const int v = atoi(argv[i+5]);
@@ -146,7 +146,10 @@ int main (int argc, char *argv[])
 				struct tz_res *tz = run_tz (graph, k, u, v);
 				write_to_file (fname_write, fname_read, gd->n, gd->m, u, v, tz, NULL);
 			} else if (strcmp ("dj", argv[i]) == 0) {
+				/* printf ("BIDIRECTIONAL %d\n", bidirectional_dijkstra (graph, u, v)); */
 				struct dijkstra_res *dijkstra = run_dijkstra (graph, u, v);
+				/* dijkstra = dijkstra; */
+				/* exit (0); */
 				write_to_file (fname_write, fname_read, gd->n, gd->m, u, v, NULL, dijkstra);
 			}
 		};

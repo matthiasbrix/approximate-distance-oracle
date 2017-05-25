@@ -29,7 +29,7 @@ void test_prepro ()
 	/* printf ("6 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm ()); */
 	int k, n, u, v, d;
 	double cpu_time_spent;
-	k = 3, n = 5, u = 0, v = 4;
+	k = 3, n = 5, u = 1, v = 4;
 	struct graph *graph = init_graph (n);
 	add_edges (graph, 0, 1, 10);
 	add_edges (graph, 0, 2, 5);
@@ -224,13 +224,16 @@ int bidirectional_dijkstra (struct graph *graph, int xi, int xg)
 	struct node *S = malloc (graph->V * sizeof (struct node));
 	struct node *S_2 = malloc (graph->V * sizeof (struct node));
 
+	QI->heap_size = 0;
+	QG->heap_size = 0;
 	min_heap_insert (QI, xi, 0, graph);
+	printf ("nej\n");
 	min_heap_insert (QG, xg, 0, graph);
+
 	in_QI_heap[xi] = 1;
 	in_QG_heap[xg] = 1;
 
 	int dist = 0;
-
 	// Possible stopping criterion: a vertex is about to be scanned a second time
 	//     * once in each direction
 	//     v may not be on the shortest path
@@ -274,9 +277,8 @@ int bidirectional_dijkstra (struct graph *graph, int xi, int xg)
 				}
 			}
 		}
-		pp_heap (QI);
+		pp_heap (QG);
 		if (QG->heap_size != 0) {
-			printf ("QI heap %d\n", in_QI_heap[4]);
 			struct node *x = extract_min (QG);
 			in_QG_heap[x->v_id] = 0;
 			relaxed_2[x->v_id] = 1;

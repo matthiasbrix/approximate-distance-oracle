@@ -2,6 +2,8 @@
 
 #define MIN_REQUIRED 6
 int offset = 0;
+
+// Skriv at float kan også lade sig gøre
 // for test graphs: http://www.info.univ-angers.fr/pub/porumbel/graphs/index.html#vss
 // generator: http://illuminations.nctm.org/Activity.aspx?id=3550
 // TODO: gdb:gcc -g -o prog myfile.c another.c
@@ -30,6 +32,7 @@ Fx. tænk på sleep - CPUen arbejder så ikke, således vil den ikke tælle det 
   preprocessing algorithm also outputs, for every w ∈ V, the shortest paths tree T (w)
   that spans the cluster C(w).
  */
+// Dijkstra requies no extra space!!
 // HVilken compiler, CPU, RAM osv jeg bruger.
 // større k, mindre pladsforbrug
 // Mange kanter contra få kanter, kig også på forskellige k og knude mængder
@@ -51,19 +54,55 @@ Fx. tænk på sleep - CPUen arbejder så ikke, således vil den ikke tælle det 
 // cat /proc/cpuinfo
 // https://stackoverflow.com/questions/63166/how-to-determine-cpu-and-memory-consumption-from-inside-a-process
 
+/**
+ * help - a help utility
+ * writing out a help utility to the user of the program
+ * to be called with flag --help when executing the program
+ */
 void help () {
-	printf ("\nTo run, required arguments are as follows:\n");
+	printf ("To run, required arguments are as follows:\n");
 	printf ("./main <algorithm> <inputfile> <outputfile> <k integer> <u integer> <v integer>\n");
 	printf ("\nPossible input for each flag:\n\n");
-	printf ("<algorithm>: <dj>, <tz> \n");
+	printf ("<algorithm>: <dj>, <tz>, <bdj>\n");
 	printf ("<inputfile>: tests/USANY.txt (needs to be of DIMACS ssp file format) \n");
 	printf ("<outputfile>: output.csv (will be generated automatically) \n");
-	printf ("<k integer>: Any integer that satisfies k >= 0 \n");
+	printf ("<k integer>: Any integer that satisfies k >= 1 \n");
 	printf ("<u integer>: Any integer that represents a node from <inputfile> \n");
 	printf ("<v integer>: Any integer that represents a node from <inputfile> \n\n");
 	return;
 }
 
+/**
+ * run_bdj - wrapper function for running bidirection dijkstra from u to v
+ * @graph: graph with vertices and edges
+ * @u: source vertex u
+ * @v: target vertex v
+ * Calls Bidirectional Dijkstra's algorithm, and measures the spent RAM and CPU time
+ */
+struct dijkstra_res *run_bdj (struct graph *graph, int u, int v)
+{
+	struct dijkstra_res *bdj = malloc (sizeof (struct dijkstra_res));
+	clock_t begin = clock();
+	int dist = bidirectional_dijkstra (graph, u-offset, v-offset);
+	clock_t end = clock();
+	double cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+	bdj->dist = dist;
+	bdj->dist_time = cpu_time_spent;
+	bdj->memory_consump = get_vm_peak ();
+	printf ("\nResult of Bidirectional Dijkstra (%d, %d) = %d\n", u, v, bdj->dist);
+	printf ("Time spent on running Bidirectional Dijkstra (%d, %d): %f\n", u, v, bdj->dist_time);
+	printf ("Memory usage of Bidirectional Dijkstra = %d KB\n", bdj->memory_consump);
+
+	return bdj;
+}
+
+/**
+ * run_dijkstra - wrapper function for running dijkstra from source vertex
+ * @graph: graph with vertices and edges
+ * @u: source vertex u
+ * @v: target vertex v
+ * Calls Dijkstra's algorithm, and measures the spent RAM and CPU time
+ */
 struct dijkstra_res *run_dijkstra (struct graph *graph, int u, int v)
 {
 	struct dijkstra_res *dijkstra = malloc (sizeof (struct dijkstra_res));
@@ -71,16 +110,26 @@ struct dijkstra_res *run_dijkstra (struct graph *graph, int u, int v)
 	struct node *S = dijkstra_alg (graph, u-offset);
 	clock_t end = clock();
 	double cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-	printf ("\nResult of Dijkstra SSP (%d, %d) = %d\n", u, v, S[v-offset].sp_est);
-	printf ("Time spent on running Dijkstra: %f\n", cpu_time_spent);
-	printf ("Memory usage of Dijkstra = %d KB\n", get_vm_peak () / 1000);
 	dijkstra->dist = S[v-offset].sp_est;
 	dijkstra->dist_time = cpu_time_spent;
 	dijkstra->memory_consump = get_vm_peak ();
+	printf ("\nResult of Dijkstra SSP (%d, %d) = %d\n", u, v, S[v-offset].sp_est);
+	printf ("Time spent on running Dijkstra (%d, %d): %f\n", u, v, dijkstra->dist_time);
+	printf ("Memory usage of Dijkstra = %d KB\n", dijkstra->memory_consump);
 
 	return dijkstra;
 }
 
+/**
+ * run_tz - wrapper function for running Thorup-Zwick
+ * @graph: graph with vertices and edges
+ * @k: k integer
+ * @u: source vertex u
+ * @v: target vertex v
+ * Calls Thorup-Zwick algorithm, and measures the spent RAM and CPU time
+ * First it calls prepro, the preprocessing algorithm and then calls dist
+ * the query algorithm
+ */
 struct tz_res *run_tz (struct graph *graph, int k, int u, int v)
 {
 	struct tz_res *tz = malloc (sizeof (struct tz_res));
@@ -96,20 +145,20 @@ struct tz_res *run_tz (struct graph *graph, int k, int u, int v)
 	}
 	end = clock();
 	cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-	printf ("Time spent on prepro Thorup-Zwick: %f\n", cpu_time_spent);
-	printf ("Memory usage of prepro = %d KB\n", get_vm_peak() / 1000);
 	tz->prepro_time = cpu_time_spent;
 	tz->prepro_memory_consump = get_vm_peak();
+	printf ("Time spent on prepro Thorup-Zwick: %f\n", tz->prepro_time);
+	printf ("Memory usage of prepro = %d KB\n", tz->prepro_memory_consump);
 
 	begin = clock();
 	int d = dist (&pp->nodes[u-offset], &pp->nodes[v-offset], pp->bunchlist);
 	end = clock();
 	cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-	printf ("\nResult of Thorup-Zwick dist(%d, %d) = %d\n", u, v, d);
-	printf ("Time spent on query Thorup-Zwick: %f\n", cpu_time_spent);
-	tz->dist_memory_consump = pp->bunchlist->bunch_size;
-	printf ("Memory usage of query (bunch size) = %d KB\n", tz->dist_memory_consump);
+	tz->dist_memory_consump = pp->bunchlist->bunch_size / 1000;
 	tz->dist_time = cpu_time_spent;
+	printf ("\nResult of Thorup-Zwick dist(%d, %d) = %d\n", u, v, d);
+	printf ("Time spent on dist Thorup-Zwick: %f\n", tz->dist_time);
+	printf ("Memory usage of dist (bunch size) = %d KB\n", tz->dist_memory_consump);
 	tz->dist = d;
 	tz->k = k;
 
@@ -120,8 +169,8 @@ int main (int argc, char *argv[])
 {
 	// for debugging
 	if (argc == 1) {
-		/* hardcoded_tests (); */
-		test_prepro ();
+		hardcoded_tests ();
+		/* test_prepro (); */
 		return EXIT_SUCCESS;
 	}
 	if (strcmp ("--help", argv[1]) == 0) {
@@ -138,19 +187,27 @@ int main (int argc, char *argv[])
 			const char *fname_write = argv[i+2];
 			const int u = atoi(argv[i+4]);
 			const int v = atoi(argv[i+5]);
-			struct graph_data *gd = count_vertices (fname_read);
+			struct graph_data *gd = read_vertices_and_edges (fname_read);
+			if (u > gd->n || v > gd->n) {
+				help ();
+				return EXIT_FAILURE;
+			}
 			struct graph *graph = init_graph (gd->n);
 			read_from_file (graph, fname_read);
 			if (strcmp ("tz", argv[i]) == 0) {
 				const int k = atoi(argv[i+3]);
+				if (k <= 0) {
+					help ();
+					return EXIT_FAILURE;
+				}
 				struct tz_res *tz = run_tz (graph, k, u, v);
-				write_to_file (fname_write, fname_read, gd->n, gd->m, u, v, tz, NULL);
+				write_to_csv (fname_write, fname_read, gd->n, gd->m, u, v, tz, NULL, NULL);
 			} else if (strcmp ("dj", argv[i]) == 0) {
-				/* printf ("BIDIRECTIONAL %d\n", bidirectional_dijkstra (graph, u, v)); */
 				struct dijkstra_res *dijkstra = run_dijkstra (graph, u, v);
-				/* dijkstra = dijkstra; */
-				/* exit (0); */
-				write_to_file (fname_write, fname_read, gd->n, gd->m, u, v, NULL, dijkstra);
+				write_to_csv (fname_write, fname_read, gd->n, gd->m, u, v, NULL, dijkstra, NULL);
+			} else if (strcmp ("bdj", argv[i]) == 0) {
+				struct dijkstra_res *bdj = run_bdj (graph, u, v);
+				write_to_csv (fname_write, fname_read, gd->n, gd->m, u, v, NULL, NULL, bdj);
 			}
 		};
 	}

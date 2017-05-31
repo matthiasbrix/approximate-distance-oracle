@@ -79,6 +79,17 @@ void test_prepro ()
 	printf ("Time spent on running Dijkstra: %f\n", cpu_time_spent);
 	printf ("Memory usage of Dijkstra = %d KB %d KB\n", get_vm_peak(), get_current_vm ());
 
+	graph = init_graph (n);
+	add_edges (graph, 0, 1, 10);
+	add_edges (graph, 0, 2, 5);
+	add_edges (graph, 0, 4, 7);
+	add_edges (graph, 1, 2, 2);
+	add_edges (graph, 1, 3, 1);
+	add_edges (graph, 2, 3, 9);
+	add_edges (graph, 2, 4, 2);
+	add_edges (graph, 3, 4, 4);
+	printf ("BIDIRECTIONAL DIJKSTRA %d\n", bidirectional_dijkstra (graph, u, v));
+
 	return;
 }
 
@@ -97,6 +108,7 @@ void hardcoded_tests ()
 	int out;
 	out = bidirectional_dijkstra (graph_1, 0, 4);
 	printf ("out: %d\n", out);
+	pp_graph (graph_1);
 
 	printf ("------------------------\n");
 	// From: http://www.geeksforgeeks.org/greedy-algorithms-set-7-dijkstras-algorithm-for-adjacency-list-representation/
@@ -117,11 +129,24 @@ void hardcoded_tests ()
 	add_edges(graph, 7, 8, 7);
 	/* pp_graph (graph); */
 	/* struct node *S_2 = dijkstra_alg (graph, 3); */
+	out = bidirectional_dijkstra (graph, 0, 1);
+	printf ("geeks: out: 1 %d\n", out);
 	out = bidirectional_dijkstra (graph, 0, 2);
-	printf ("out: %d\n", out);
-
-
+	printf ("geeks: out: 2 %d\n", out);
+	out = bidirectional_dijkstra (graph, 0, 3);
+	printf ("geeks: out: 3 %d\n", out);
+	out = bidirectional_dijkstra (graph, 0, 4);
+	printf ("geeks: out: 4 %d\n", out);
+	out = bidirectional_dijkstra (graph, 0, 5);
+	printf ("geeks: out: 5 %d\n", out);
+	out = bidirectional_dijkstra (graph, 0, 6);
+	printf ("geeks: out: 6 %d\n", out);
+	out = bidirectional_dijkstra (graph, 0, 7);
+	printf ("geeks: out: 7 %d\n", out);
+	out = bidirectional_dijkstra (graph, 0, 8);
+	printf ("geeks: out: 8 %d\n", out);
 	/* printf ("------------------------\n"); */
+
 	/* // From CLRS p. 659 (though it is directed) */
 	struct graph* graph_3 = init_graph (5);
 	add_edges (graph_3, 0, 1, 10);
@@ -132,10 +157,16 @@ void hardcoded_tests ()
 	add_edges (graph_3, 2, 3, 9);
 	add_edges (graph_3, 2, 4, 2);
 	add_edges (graph_3, 3, 4, 4);
-	pp_graph (graph_3);
+	/* pp_graph (graph_3); */
 	/* pp_graph (graph_3); */
 	struct node *S_3 = dijkstra_alg (graph_3, 0);
 	pp_nodes (S_3, 5);
+	out = bidirectional_dijkstra (graph_3, 0, 1);
+	printf ("out: %d\n", out);
+	out = bidirectional_dijkstra (graph_3, 0, 2);
+	printf ("out: %d\n", out);
+	out = bidirectional_dijkstra (graph_3, 0, 3);
+	printf ("out: %d\n", out);
 	out = bidirectional_dijkstra (graph_3, 0, 4);
 	printf ("out: %d\n", out);
 
@@ -157,6 +188,25 @@ void hardcoded_tests ()
 	pp_graph (graph_4);
 	out = bidirectional_dijkstra (graph_4, 0, 2);
 	printf ("out: %d\n", out);
+
+	struct graph* graph_6 = init_graph (9);
+	add_edges (graph_6, 0, 1, 4);
+	add_edges (graph_6, 0, 2, 5);
+	add_edges (graph_6, 0, 3, 7);
+	add_edges (graph_6, 3, 5, 4);
+	add_edges (graph_6, 3, 6, 6);
+	add_edges (graph_6, 1, 4, 9);
+	add_edges (graph_6, 2, 5, 3);
+	add_edges (graph_6, 5, 7, 5);
+	add_edges (graph_6, 5, 4, 12);
+	add_edges (graph_6, 7, 8, 3);
+	add_edges (graph_6, 4, 8, 13);
+	add_edges (graph_6, 6, 8, 9);
+	pp_graph (graph_6);
+	out = bidirectional_dijkstra (graph_6, 1, 6);
+	printf ("out: %d\n", out);
+	struct node *S = dijkstra_alg (graph_6, 1);
+	pp_nodes (S, 9);
 	exit (0);
 }
 
@@ -187,7 +237,7 @@ struct heap *initialise_single_source (struct graph *graph, int s)
 	return heap;
 }
 
-// O((m + n) lg n)
+// O(m + n lg n)
 struct node *dijkstra_alg (struct graph *graph, int s)
 {
 	struct heap *Q = initialise_single_source (graph, s);
@@ -205,110 +255,91 @@ struct node *dijkstra_alg (struct graph *graph, int s)
 		}
 		graph->adjlists[u->v_id].nd = NULL;
 	}
+	free_heap (Q);
 	return S;
 }
 
 // http://planning.cs.uiuc.edu/node50.html
 // http://www.cs.princeton.edu/courses/archive/spr06/cos423/Handouts/EPP%20shortest%20path%20algorithms.pdf
-int bidirectional_dijkstra (struct graph *graph, int xi, int xg)
+// where they suggest the correct stopping condition is that the sum of the values at the top of each heap (forward and reverse) >= the length of the shortest path seen so far. Once that condition holds, the shortest path seen so far is the shortest path.
+int bidirectional_dijkstra (struct graph *graph, int u, int v)
 {
-	int *in_QI_heap = calloc (graph->V, sizeof (int));
-	int *in_QG_heap = calloc (graph->V, sizeof (int));
 	struct heap *QI = malloc (sizeof (struct heap));
 	QI->nodes = malloc (graph->V * sizeof(struct node*));
 	struct heap *QG = malloc (sizeof (struct heap));
 	QG->nodes = malloc (graph->V * sizeof(struct node*));
-	int *relaxed = calloc (graph->V, sizeof(int));
+		int *in_QI_heap = calloc (graph->V, sizeof (int));
+	int *in_QG_heap = calloc (graph->V, sizeof (int));
+	int *relaxed_1 = calloc (graph->V, sizeof(int));
 	int *relaxed_2 = calloc (graph->V, sizeof(int));
 
-	struct node *S = malloc (graph->V * sizeof (struct node));
+	struct node *S_1 = malloc (graph->V * sizeof (struct node));
+	memset (S_1, 0, graph->V * sizeof (struct node));
 	struct node *S_2 = malloc (graph->V * sizeof (struct node));
+	memset (S_2, 0, graph->V * sizeof (struct node));
 
 	QI->heap_size = 0;
 	QG->heap_size = 0;
-	min_heap_insert (QI, xi, 0, graph);
-	printf ("nej\n");
-	min_heap_insert (QG, xg, 0, graph);
-
-	in_QI_heap[xi] = 1;
-	in_QG_heap[xg] = 1;
-
-	int dist = 0;
-	// Possible stopping criterion: a vertex is about to be scanned a second time
-	//     * once in each direction
-	//     v may not be on the shortest path
-	// case 1: Begge er i heaps
-	// case 2: x er i heap 1, men ikke i 2 heap (allerede relaxed)
-	// case 3: x er i heap 1, y i heap 2, direkte forbundet. gemmer afstanden, som ikke er relaxed endnu, men i heap
-	// case 4: direkte forbundet, men en anden vej er kortere (PROBLEM)
+	struct graph *g = copy_graph_struct (graph, QI);
+	min_heap_insert (QI, u, 0, g);
+	min_heap_insert (QG, v, 0, graph);
+	int best_estimate = (int) INFINITY;
 
 	while (QI->heap_size != 0 && QG->heap_size != 0) {
-		pp_heap (QI);
-		pp_heap (QG);
-		if (QI->heap_size != 0) {
-			struct node *x = extract_min (QI);
-			in_QI_heap[x->v_id] = 0;
-			relaxed[x->v_id] = 1;
-			memcpy (&S[x->v_id], x, sizeof(struct node));
-			// (in_QG_heap[x->v_id] <= QG->nodes[0]->sp_est) &&  else run dijkstra
-			if ((x->v_id == xg || in_QG_heap[x->v_id] || relaxed_2[x->v_id])) {
-				printf ("QI %d %d %d %d %d %d %d\n", (x->v_id == xg),in_QG_heap[x->v_id] , relaxed_2[x->v_id], x->v_id, x->sp_est, xg, S_2[x->v_id].sp_est);
-				if (relaxed_2[x->v_id]) {
-					return x->sp_est + S_2[x->v_id].sp_est;
-				}
-				printf ("test\n");
-				return x->sp_est + in_QG_heap[x->v_id];
-			} else {
-				for (struct adjlistnode *s = graph->adjlists[x->v_id].head;
-				 s != NULL; s = s->next) {
-					printf ("test her %d %d %d\n", s->v_id, !(in_QG_heap[s->v_id]), !(in_QI_heap[s->v_id]));
-					struct node *v = graph->adjlists[s->v_id].nd;
-					int sp_est = x->sp_est + s->weight;
-					if (!(in_QI_heap[s->v_id]) && !(relaxed[s->v_id])) {
-						min_heap_insert (QI, s->v_id, sp_est, graph);
-						graph->adjlists[s->v_id].nd->pi = x;
-						in_QI_heap[s->v_id] = sp_est;
-					} else {
-						if ((v->sp_est > sp_est)) {
-							decrease_key (QI, v, x, sp_est);
-							in_QI_heap[s->v_id] = sp_est;
-						}
-					}
-				}
-			}
+		int a = (minimum (QI))->sp_est;
+		int b = (minimum (QG))->sp_est;
+		if (a == (int) INFINITY || b == (int) INFINITY) {
+			return (int) INFINITY;
 		}
-		pp_heap (QG);
-		if (QG->heap_size != 0) {
-			struct node *x = extract_min (QG);
-			in_QG_heap[x->v_id] = 0;
-			relaxed_2[x->v_id] = 1;
-			memcpy (&S_2[x->v_id], x, sizeof(struct node));
-			// if (in_QI_heap[x->v_id] <= QI[0].sp_est) else run dijkstra
-			if ((in_QI_heap[x->v_id] <= QI->nodes[0]->sp_est) && (x->v_id == xi || in_QI_heap[x->v_id] || relaxed[x->v_id])) {
-				printf ("QG %d %d %d %d %d %d %d\n", (x->v_id == xi), in_QI_heap[x->v_id] , relaxed[x->v_id], x->v_id, x->sp_est, xg, S[x->v_id].sp_est);
-				if (relaxed[x->v_id]) {
-					return x->sp_est + S[x->v_id].sp_est;
+		if (a < b) {
+			struct node *fir = extract_min (QI);
+			memcpy (&S_1[fir->v_id], fir, sizeof(struct node));
+			for (struct adjlistnode *s = g->adjlists[fir->v_id].head;
+				 s != NULL; s = s->next) {
+				struct node *v = g->adjlists[s->v_id].nd;
+				int sp_est = fir->sp_est + s->weight;
+				if (!relaxed_1[s->v_id] && !in_QI_heap[s->v_id]) {
+					min_heap_insert (QI, s->v_id, sp_est, g);
+					g->adjlists[s->v_id].nd->pi = fir;
+					in_QI_heap[s->v_id] = 1;
+				} else if (v != NULL && v->sp_est > sp_est && !relaxed_1[s->v_id]) {
+					decrease_key (QI, v, fir, sp_est);
 				}
-				printf ("test\n");
-				return x->sp_est + in_QI_heap[x->v_id];
 			}
-			for (struct adjlistnode *s = graph->adjlists[x->v_id].head;
+			relaxed_1[fir->v_id] = 1;
+			if (relaxed_1[fir->v_id] && relaxed_2[fir->v_id]) {
+				if (best_estimate >= S_1[fir->v_id].sp_est + S_2[fir->v_id].sp_est) {
+					best_estimate = S_1[fir->v_id].sp_est + S_2[fir->v_id].sp_est;
+				} else {
+					return best_estimate;
+				}
+			}
+		} else {
+			struct node *sec = extract_min (QG);
+			memcpy (&S_2[sec->v_id], sec, sizeof(struct node));
+			for (struct adjlistnode *s = graph->adjlists[sec->v_id].head;
 				 s != NULL; s = s->next) {
 				struct node *v = graph->adjlists[s->v_id].nd;
-				int sp_est = x->sp_est + s->weight;
-				/* printf ("test %d %d\n", (in_QG_heap[s->v_id]), (in_QI_heap[s->v_id])); */
-				if (!(in_QG_heap[s->v_id]) && !(relaxed_2[s->v_id])) {
+				int sp_est = sec->sp_est + s->weight;
+				if (!relaxed_2[s->v_id] && !in_QG_heap[s->v_id]) {
 					min_heap_insert (QG, s->v_id, sp_est, graph);
-					graph->adjlists[s->v_id].nd->pi = x;
+					graph->adjlists[s->v_id].nd->pi = sec;
 					in_QG_heap[s->v_id] = sp_est;
+				} else if (v != NULL && v->sp_est > sp_est && !relaxed_2[s->v_id]) {
+					decrease_key (QG, v, sec, sp_est);
+				}
+			}
+			relaxed_2[sec->v_id] = 1;
+			if (relaxed_1[sec->v_id] && relaxed_2[sec->v_id]) {
+				if (best_estimate >= S_1[sec->v_id].sp_est + S_2[sec->v_id].sp_est) {
+					best_estimate = S_1[sec->v_id].sp_est + S_2[sec->v_id].sp_est;
 				} else {
-					if ((v->sp_est > sp_est)) {
-						decrease_key (QG, v, x, sp_est);
-						in_QG_heap[s->v_id] = sp_est;
-					}
+					return best_estimate;
 				}
 			}
 		}
 	}
-	return dist;
+
+	return best_estimate;
+
 }

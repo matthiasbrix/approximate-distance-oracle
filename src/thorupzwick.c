@@ -1,6 +1,7 @@
 #include "thorupzwick.h"
 
 // #define DEBUG
+// #define NEXPERIMENT
 
 void pp_aseqs (struct aseq **A, int k)
 {
@@ -42,13 +43,15 @@ void pp_bunches (struct bunchlist *bunchlist, int k)
 		for (int j = 0; j < k; j++) {
 			printf("p_%d(%d)=%d, SP:%d\n",
 				   j, bunchlist->bunches[i].v->v_id+offset,
-				   bunchlist->bunches[i].piv[j].v_id+offset, bunchlist->bunches[i].piv[j].sp_est);
+				   bunchlist->bunches[i].piv[j].v_id+offset,
+				   bunchlist->bunches[i].piv[j].sp_est);
 		}
 	}
 	return;
 }
 
-void pp_pivots (struct bunchlist *bunchlist, struct node *nodes, unsigned int n, int i)
+void pp_pivots (struct bunchlist *bunchlist, struct node *nodes,
+				unsigned int n, int i)
 {
 	printf("Pretty print all pivot elements (witnesses) \n");
 	for (unsigned int j = 0; j < n-1; j++) {
@@ -61,26 +64,6 @@ void pp_pivots (struct bunchlist *bunchlist, struct node *nodes, unsigned int n,
 /*************************************************************************
  * Begin of the actual functions for thorup-zwick
  *************************************************************************/
-// TODO:
-/* key: pointer to the key data, keylen is length of key data,
-   hashv is an unsigned integer that you need to fill in with the
-   answer
- */
-// Skriv hvis den er uniformly (det er den)
-// -DHASH_FUNCTION=HASH_THORUPZWICK
-/* #define HASH_THORUPZWICK(key,keylen,hashv)           \ */
-/* do {                                                 \ */
-/* 	srand((unsigned)time(NULL));                     \ */
-/* 	unsigned _ho_i;                                  \ */
-/* 	hashv = 0;										 \ */
-/* 	const uint32_t *x = (const uint32_t*)(key);      \ */
-/* 	for (_ho_i=0; _ho_i < keylen; _ho_i++) {         \ */
-/* 	  uint32_t a = (rand()|1);					     \ */
-/* 	  int l = ((rand() % ((33 - 0 + 0 % 2) >> 1)     \ */
-/* 		  + ((0 - 0 % 2) >> 1)) << 1) + 1;           \ */
-/* 	  (hashv) = (a*(*x)) >> (32-l);					 \ */
-/* 	}                                                \ */
-/* } while (0) */
 
 /**
  * add_s_node_to_graph - adding the super vertex s to the graph
@@ -99,38 +82,46 @@ void add_s_node_to_graph (struct graph *graph, struct aseq *ai)
 
 /**
  * find_pivot - finding all pivot elements for v in A_i
- * @bunchlist: bunchlist pointer, required to access the pivot structures
- * @nodes: all nodes (V)
+ * @aiplusone_pivot_arr: A_i+1 set
  * @n: number of nodes in graph, |V|=n
- * @i: current index such that 0 <= i <= k-1
- * @k: the k integer
+ * Running time: O(n)
  * Not looping through all v in V and A sets, otherwise running time could be O(n^2)
  * If v.pi = s, it is a pivot node
- * If a node has been visited by a traversing one, save the visitor, such that in a later iteration we check if the respective node has been visited. If so, we simply retrieve the visitor node's pivot node
+ * If a node has been visited by a traversing one, save the visitor, such that
+ * in a later iteration we check if the respective node has been visited.
+ * If so, we simply retrieve the visitor node's pivot node
  * (*) property, if d(A_i, v) == d(A_i+1,v), copy! Means we get p_i(v) = p_i+1(v) ∈ B(v),
- * otherwise, δ(p_i(v), v) = δ(A_i, v) < δ(A_i+1, v). Thus distance will be same, but the node would change (to A_i+1) if (*) fails
+ * otherwise, δ(p_i(v), v) = δ(A_i, v) < δ(A_i+1, v). Thus distance will be same,
+ * but the node would change (to A_i+1) if (*) fails
  */
-void find_pivot (struct bunchlist *bunchlist, struct node *nodes,
-				 unsigned int n, int i, int k)
+struct node *find_pivot (struct node *aiplusone_pivot_arr,
+						 struct node *nodes, unsigned int n)
 {
 	// no need to allocate for s node, therefore n-1
 	int *visited_nodes = malloc ((n-1) * sizeof (int));
-	for (unsigned int j = 0; j < n-1; j++)
-		visited_nodes[j] = -1;
+	for (unsigned int i = 0; i < (n-1); i++)
+		visited_nodes[i] = -1;
+
+	struct node *pivot_arr = malloc ((n-1) * sizeof (struct node));
+	memset (pivot_arr, 0, ((n-1) * sizeof (int)));
+
+	if (pivot_arr == NULL) {
+		perror ("Failed to allocate pivot array\n");
+		exit (-1);
+	}
 
 	// skipping node s in nodes, assuming s is the last node
-	for (unsigned int j = 0; j < n-1; j++) {
+	for (unsigned int i = 0; i < n-1; i++) {
 		struct node *piv = NULL;
-		struct node *v = nodes[j].pi;
+		struct node *v = nodes[i].pi;
 
-		if (visited_nodes[nodes[j].v_id] != -1) {
-			bunchlist->bunches[nodes[j].v_id].piv[i] =
-				bunchlist->bunches[visited_nodes[nodes[j].v_id]].piv[i];
-			bunchlist->bunches[nodes[j].v_id].piv[i].sp_est =
-				nodes[nodes[j].v_id].sp_est;
+		if (visited_nodes[nodes[i].v_id] != -1) {
+			memcpy (&pivot_arr[nodes[i].v_id], &pivot_arr[visited_nodes[nodes[i].v_id]],
+					sizeof(pivot_arr[visited_nodes[nodes[i].v_id]]));
+			pivot_arr[nodes[i].v_id].sp_est = nodes[nodes[i].v_id].sp_est;
 		} else if (v->v_id == nodes[n-1].v_id) {
-			bunchlist->bunches[nodes[j].v_id].piv[i] = nodes[j];
-			bunchlist->bunches[nodes[j].v_id].piv[i].sp_est = 0;
+			memcpy (&pivot_arr[nodes[i].v_id], &nodes[i], sizeof(nodes[i]));
+			pivot_arr[nodes[i].v_id].sp_est = 0;
 		} else {
 			while (v) {
 				piv = v;
@@ -138,26 +129,24 @@ void find_pivot (struct bunchlist *bunchlist, struct node *nodes,
 				if (v->pi != NULL && v->pi->v_id == nodes[n-1].v_id) {
 					break;
 				}
-				visited_nodes[v->v_id] = nodes[j].v_id;
+				visited_nodes[v->v_id] = nodes[i].v_id;
 				v = v->pi;
 			}
 			// let piv be w, thus we set p_i(v) <- w
-			memcpy (&bunchlist->bunches[nodes[j].v_id].piv[i], piv, sizeof(&piv));
-			bunchlist->bunches[nodes[j].v_id].piv[i].sp_est = nodes[nodes[j].v_id].sp_est;
+			memcpy (&pivot_arr[nodes[i].v_id], piv, sizeof(&piv));
+			pivot_arr[nodes[i].v_id].sp_est = nodes[nodes[i].v_id].sp_est;
 		}
-		// (*) property AND no copy when i==k-1 as p_k(v) undefined, A_k = Ø
-		if (i != (k-1) &&
-			bunchlist->bunches[nodes[j].v_id].piv[i].sp_est ==
-			bunchlist->bunches[nodes[j].v_id].piv[i+1].sp_est) {
-			memcpy (&bunchlist->bunches[nodes[j].v_id].piv[i],
-					&bunchlist->bunches[nodes[j].v_id].piv[i+1],
-					sizeof (struct node));
+		// (*) property
+		if (aiplusone_pivot_arr != 0 && pivot_arr[nodes[i].v_id].sp_est
+			== aiplusone_pivot_arr[nodes[i].v_id].sp_est) {
+			memcpy (&pivot_arr[nodes[i].v_id], &aiplusone_pivot_arr[nodes[i].v_id],
+					sizeof (aiplusone_pivot_arr[nodes[i].v_id]));
 		}
 	}
 
 	FREE (visited_nodes);
 
-	return;
+	return pivot_arr;
 }
 
 /**
@@ -167,9 +156,11 @@ void find_pivot (struct bunchlist *bunchlist, struct node *nodes,
  * @pivot_nodes: all pivot nodes
  * @k: k integer
  * @i: the current i index
+ * Running time: O(m)
  * Cluster C(w) is composed of all the vertices that are closer to w than any (i+1)-center
  * Note that δ(A_{i+1}, v) was computed in the previous iteration so the test takes constant time.
- * Note that if v not in C(w), then we never assign a finite distance, as by definition, v ∈ C(w) if and only if δ(w, v) < δ(A_i+1, v). This modified version of Dijkstra starts with w in the heap,
+ * Note that if v not in C(w), then we never assign a finite distance, as by definition,
+ * v ∈ C(w) if and only if δ(w, v) < δ(A_i+1, v). This modified version of Dijkstra starts with w in the heap,
  * consequently adding all vertices being relaxed (or relaxed if already added to heap).
  * We relax the edge (u,v) ONLY if u.d + l(u,v) < d(A_{i+1}, v), where d(A_{i+1}, v) = d(p_{i+1}(v), v)
  * Also, if i==k-1, no pivot element to compare with, thus we just relax edge / insert node
@@ -255,6 +246,7 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
  * @pivot_nodes: all pivot nodes
  * @i: the current i index
  * @k: k integer
+ * Running time: O(n)
  * From here we construct the clusters. If i=k-1 the clusters of all w in A_i contain
  * all vertices. Otherwise, we check if w is in A_i - A_i+1. In both cases we compute
  * a modified version of dijkstra from with w as source.
@@ -269,12 +261,13 @@ struct clusterlist *construct_clusters (struct graph *graph, struct aseq **A,
 	// For every w in A_i - A_i+1
 	for (int w = 0; w < A[i]->seqsize; w++) {
 		// for every w ∈ A_k−1 we have C(w) = V
-		// check if w in A_i - A_i+1
+		// if not i==k-1, check if w in A_i - A_i+1
 		if (i < (k-1) && A[i+1]->added[A[i]->nodes[w].v_id]) {
 			continue;
 		}
 		// if indeed w in A_i - A_i+1, go on with dijkstra to create a cluster C(w)
-		// create cluster C(w) = V, computing the distances from w to all other v in V
+		// For i==k-1, create cluster C(w) = V,
+		// computing the distances from w to all other v in V
 		struct cluster *cw = dijkstra_cluster_tz (graph, &A[i]->nodes[w], pivot_nodes, k, i);
 		tmp_clusters[num_clusters] = malloc (sizeof (struct cluster));
 		memcpy (tmp_clusters[num_clusters], cw, sizeof (struct cluster));
@@ -296,6 +289,12 @@ struct clusterlist *construct_clusters (struct graph *graph, struct aseq **A,
 	return C;
 }
 
+/**
+ * compute_bunch_size - computing the size of the bunches
+ * @bunchlist: adjacency list rep. of the graph
+ * Running time: O(n)
+ * Computes the size of all bunches by computing the hash tables overhead.
+ */
 size_t compute_bunch_size (struct bunchlist *bunchlist)
 {
 	size_t ds_size = 0;
@@ -313,10 +312,11 @@ size_t compute_bunch_size (struct bunchlist *bunchlist)
  * @A: all sequences
  * @bunchlist: a memory initialised struct of bunches
  * @pivot_nodes: all pivot nodes
- * Generating bunches from the clusters. Runs in linear time of the cluster size
+ * Running time: Runs in linear time of the cluster size
  * such that O(\sum_{w ∈ V} |C(w)|) = O(\sum_{v ∈ V} |B(v)|)
- * For each v in V, we construct a bunch, containing all w of all C(w) v belongs to
- * Note, we get A_{k-1} \subseteq B(v) for every v in V, meaning all nodes from A_{k-1} belong to every bunch
+ * Generating bunches from the clusters. For each v in V, we construct a bunch,
+ * containing all w of all C(w) v belongs to. Note, we get A_{k-1} \subseteq B(v)
+ * for every v in V, meaning all nodes from A_{k-1} belong to every bunch
  */
 void construct_bunches (struct clusterlist **C, int k,
 						struct bunchlist *bunchlist)
@@ -351,8 +351,7 @@ void construct_bunches (struct clusterlist **C, int k,
  * @k: k integer
  * @graph: adjacency list rep. of graph
  * @nodes: all n nodes and their attributes
- *
- * Running time O(n)
+ * Running time: O(n)
  * Constructs non increasing sequence of sets A_0 ⊇ A_1 ⊇ ... ⊇ A_k−1, A_k = Ø
  * Begins with A_0 = V and iterates then 1 <= i < k. Each node in A_i-1 is tested
  * with n^-1/k probability whether it is obtained in A_i. Vertices in an A_i set
@@ -395,6 +394,7 @@ bool create_aseqs (struct aseq **A, int k, struct graph *graph, struct node *nod
 		if (A[i]->seqsize == 0) {
 			FREE (tmp);
 			for (int j = 0; j < i; j++) {
+				FREE (A[j]->nodes);
 				FREE (A[j]->added);
 				FREE (A[j]);
 			}
@@ -416,7 +416,6 @@ bool create_aseqs (struct aseq **A, int k, struct graph *graph, struct node *nod
  * prepro - preprocessing algorithm of Thorup-Zwick
  * @graph: vertex u
  * @k: vertex v
- *
  * Running time O(kn^{1+1/k})
  * Calling various componenets (functions) for preprocessing. This includes
  * generating A_i sequences, computing the shortest path from node s to all v in V,
@@ -432,6 +431,7 @@ struct prepro *prepro (struct graph *graph, int k)
 	struct aseq *A[k+1];
 	// k+1, for the kth set where d(A_k, v) = infinity for all v in V
 	struct node *dist[k+1];
+	struct node *pivot_nodes[k+1];
 	struct heap *heap;
 	struct clusterlist *C[k];
 	struct bunchlist *bunchlist = malloc (sizeof (struct bunchlist));
@@ -457,12 +457,15 @@ struct prepro *prepro (struct graph *graph, int k)
 	// Creating all A_i sequences
 	empty = create_aseqs (A, k, graph, nodes);
 
-	// Empty set, thus d(A_i, v) = infinity (thus NULL array) */
 	// also, since A_{k-1} = Ø, rerun!
 	if (!empty) {
+		#ifdef NEXPERIMENT
 		printf ("A_{k-1} == Ø, empty set.");
 		printf (" Hence, re-running the preprocessing algorithm!\n");
+		#endif
 		FREE (nodes);
+		FREE (bunchlist->bunches->v);
+		FREE (bunchlist->bunches->piv);
 		FREE (bunchlist->bunches);
 		FREE (bunchlist);
 		prepro->nodes = NULL;
@@ -479,17 +482,18 @@ struct prepro *prepro (struct graph *graph, int k)
 
 	// d(A_k, v) = infinity, thus NULL
 	dist[k] = NULL;
+	// p_k(v) undefined as A_k = Ø
+	pivot_nodes[k] = NULL;
 
 	// k iterations
 	for (int i = k-1; i >= 0; i--) {
-		// copy of heap to work with for current i
-		// initialising the heap
-		heap = initialise_single_source_tz (graph);
-		/* // copy of graph to work with for current i */
+		// initialising the heap for current i
+		heap = initialise_single_source_tz (graph->V);
+		// copy of graph to work with for current i
 		struct graph *write_graph = copy_graph_struct (graph, heap);
 		// adding source vertex s to G, weight 0 to all other vertices in A_i
 		add_s_node_to_graph (write_graph, A[i]);
-		// adding s to heap as well to allow computing sp
+		// adding s node to heap as well to allow computing sp
 		min_heap_insert (heap, write_graph->V, 0, write_graph);
 		write_graph->V += 1;
 		n = write_graph->V;
@@ -504,26 +508,23 @@ struct prepro *prepro (struct graph *graph, int k)
 		#endif
 
 		// Finding the pivot elements
-		find_pivot (bunchlist, dist[i], n, i, k);
+		pivot_nodes[i] = find_pivot (pivot_nodes[i+1], dist[i], n);
+		// Copy the pivot nodes to the piv of bunches
+		for (unsigned int j = 0; j < (n-1); j++) {
+			bunchlist->bunches[j].piv[i] = pivot_nodes[i][j];
+		}
 
 		#ifdef DEBUG
 		pp_pivots (bunchlist, nodes, n, i);
 		#endif
 
-		// Row major access, ensuring better locality
-		struct node *pivot_row = malloc ((n-1) * sizeof(struct node));
-		for (unsigned int j = 0; j < (n-1) && !(i == (k-1)); j++) {
-			pivot_row[j] = bunchlist->bunches[j].piv[i+1];
-		}
-		C[i] = construct_clusters (graph, A, pivot_row, i, k);
+		C[i] = construct_clusters (graph, A, pivot_nodes[i+1], i, k);
 
 		#ifdef DEBUG
 		pp_clusters (C, i);
 		#endif
 
 		free_graph (write_graph);
-		free_heap (heap);
-		FREE (pivot_row);
 		FREE (dist[i]);
 	}
 
@@ -537,6 +538,15 @@ struct prepro *prepro (struct graph *graph, int k)
 	prepro->bunchlist = bunchlist;
 	prepro->success = true;
 	prepro->k = k;
+
+	for (int i = 0; i < k; i++) {
+		FREE (pivot_nodes[i]);
+		FREE (A[i]->added);
+		FREE (A[i]->nodes);
+		FREE (A[i]);
+		FREE (C[i]->clusters);
+		FREE (C[i]);
+	}
 
 	free_graph (graph);
 
@@ -566,7 +576,7 @@ int dist (struct node *u, struct node *v, struct bunchlist *bunchlist)
 	// while w not in B(v)
 	while (1) {
 		struct node *out, *tmp;
-		// checking if w in B(v), where nodes are vertices w in V
+		// checking if w in B(v), where .nodes rep. all vertices w in V
 		HASH_FIND_INT(bunchlist->bunches[v->v_id].nodes, &w->v_id, out);
 		if (out) {
 			result += out->sp_est;

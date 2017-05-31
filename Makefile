@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS =-Wall -Wextra -pedantic -std=gnu11
+CFLAGS =-O3 -Wall -Wextra -pedantic -std=gnu11
 
 BINDIR = bin
 SOURCEDIR = src

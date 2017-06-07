@@ -4,7 +4,6 @@
 /dsjc500.1.col
 /dsjc500.9.col
 /test.c
-/hash
-/output.csv
+/hash.c
 /benchmarks
 /*.csv

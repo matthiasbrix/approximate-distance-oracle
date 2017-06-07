@@ -4,5 +4,7 @@
 /dsjc500.1.col
 /dsjc500.9.col
 /output.csv
-src/test.c
+/src/test.c
 /hash
+/x_times.sh
+

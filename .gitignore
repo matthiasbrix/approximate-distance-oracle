@@ -7,3 +7,5 @@
 /hash.c
 /benchmarks
 /*.csv
+/tests/USAEAST.txt
+/tests/USAWEST.txt

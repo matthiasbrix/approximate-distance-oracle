@@ -179,8 +179,7 @@ int bidirectional_dijkstra (struct graph *gf, int u, int v)
 
 	QI->heap_size = 0;
 	QG->heap_size = 0;
-	// graph for backward search
-	struct graph *gb = copy_graph_struct (gf, QI);
+	struct graph *gb = copy_graph_struct (gf, QG);
 	min_heap_insert (QI, u, 0, gf);
 	min_heap_insert (QG, v, 0, gb);
 	int best_estimate = (int) INFINITY;
@@ -188,9 +187,7 @@ int bidirectional_dijkstra (struct graph *gf, int u, int v)
 	while (QI->heap_size != 0 && QG->heap_size != 0) {
 		int topqi = (minimum (QI))->sp_est;
 		int topqg = (minimum (QG))->sp_est;
-		if (topqi == (int) INFINITY || topqg == (int) INFINITY) {
-			return (int) INFINITY;
-		}
+
 		if (topqi < topqg) {
 			struct node *fir = extract_min (QI);
 			memcpy (&S_1[fir->v_id], fir, sizeof(struct node));
@@ -201,9 +198,10 @@ int bidirectional_dijkstra (struct graph *gf, int u, int v)
 				if (!relaxed_1[s->v_id] && !in_QI_heap[s->v_id]) {
 					min_heap_insert (QI, s->v_id, sp_est, gf);
 					gf->adjlists[s->v_id].nd->pi = fir;
-					in_QI_heap[s->v_id] = 1;
-				} else if (v != NULL && v->sp_est > sp_est && !relaxed_1[s->v_id]) {
+					in_QI_heap[s->v_id] = sp_est;
+				} else if (v != NULL && (v->sp_est > sp_est) && !relaxed_1[s->v_id]) {
 					decrease_key (QI, v, fir, sp_est);
+					in_QI_heap[s->v_id] = sp_est;
 				}
 			}
 			relaxed_1[fir->v_id] = 1;
@@ -213,6 +211,9 @@ int bidirectional_dijkstra (struct graph *gf, int u, int v)
 				} else {
 					return best_estimate;
 				}
+			} else if (in_QI_heap[fir->v_id] && in_QG_heap[fir->v_id] &&
+				best_estimate >= in_QI_heap[fir->v_id] + in_QG_heap[fir->v_id]) {
+				best_estimate = in_QI_heap[fir->v_id] + in_QG_heap[fir->v_id];
 			}
 		} else {
 			struct node *sec = extract_min (QG);
@@ -225,8 +226,9 @@ int bidirectional_dijkstra (struct graph *gf, int u, int v)
 					min_heap_insert (QG, s->v_id, sp_est, gb);
 					gb->adjlists[s->v_id].nd->pi = sec;
 					in_QG_heap[s->v_id] = sp_est;
-				} else if (v != NULL && v->sp_est > sp_est && !relaxed_2[s->v_id]) {
+				} else if (v != NULL && (v->sp_est > sp_est) && !relaxed_2[s->v_id]) {
 					decrease_key (QG, v, sec, sp_est);
+					in_QG_heap[s->v_id] = sp_est;
 				}
 			}
 			relaxed_2[sec->v_id] = 1;
@@ -235,6 +237,10 @@ int bidirectional_dijkstra (struct graph *gf, int u, int v)
 					best_estimate = S_1[sec->v_id].sp_est + S_2[sec->v_id].sp_est;
 				} else {
 					return best_estimate;
+				}
+			} else if (in_QG_heap[sec->v_id] && in_QI_heap[sec->v_id]) {
+				if (best_estimate >= in_QI_heap[sec->v_id] + in_QG_heap[sec->v_id]) {
+					best_estimate = in_QI_heap[sec->v_id] + in_QG_heap[sec->v_id];
 				}
 			}
 		}

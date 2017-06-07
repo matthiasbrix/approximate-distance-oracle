@@ -341,7 +341,6 @@ struct tz_res *run_tz (struct graph *graph, int k, int u, int v)
 
 int main (int argc, char *argv[])
 {
-	// for debugging
 	if (argc == 1) {
 		hardcoded_tests ();
 		/* test_prepro (); */
@@ -363,6 +362,8 @@ int main (int argc, char *argv[])
 			const int v = atoi(argv[i+5]);
 			struct graph_data *gd = read_vertices_and_edges (fname_read);
 			if (u > gd->n || v > gd->n) {
+				printf ("Source vertex u or/and target vertex v is/are invalid\n");
+				printf ("Please consider a valid vertex that is < n");
 				help ();
 				return EXIT_FAILURE;
 			}
@@ -371,6 +372,7 @@ int main (int argc, char *argv[])
 			if (strcmp ("tz", argv[i]) == 0) {
 				const int k = atoi(argv[i+3]);
 				if (k <= 0) {
+					printf ("k is <= 0! Please set k >= 1\n");
 					help ();
 					return EXIT_FAILURE;
 				}

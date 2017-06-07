@@ -1,8 +1,5 @@
 #include "thorupzwick.h"
 
-// #define DEBUG
-// #define NEXPERIMENT
-
 void pp_aseqs (struct aseq **A, int k)
 {
 	printf("Pretty print all A_i sequences\n");
@@ -61,9 +58,11 @@ void pp_pivots (struct bunchlist *bunchlist, struct node *nodes,
 	}
 }
 
-/*************************************************************************
+/*
+ ************************************************************************
  * Begin of the actual functions for thorup-zwick
- *************************************************************************/
+ ************************************************************************
+*/
 
 /**
  * add_s_node_to_graph - adding the super vertex s to the graph
@@ -459,10 +458,6 @@ struct prepro *prepro (struct graph *graph, int k)
 
 	// also, since A_{k-1} = Ø, rerun!
 	if (!empty) {
-		#ifdef NEXPERIMENT
-		printf ("A_{k-1} == Ø, empty set.");
-		printf (" Hence, re-running the preprocessing algorithm!\n");
-		#endif
 		FREE (nodes);
 		FREE (bunchlist->bunches->v);
 		FREE (bunchlist->bunches->piv);
@@ -474,11 +469,6 @@ struct prepro *prepro (struct graph *graph, int k)
 		prepro->k = -1;
 		return prepro;
 	}
-
-	#ifdef DEBUG
-	pp_graph (graph);
-	pp_aseqs (A, k);
-	#endif
 
 	// d(A_k, v) = infinity, thus NULL
 	dist[k] = NULL;
@@ -501,12 +491,6 @@ struct prepro *prepro (struct graph *graph, int k)
 		// compute d(A_i, v), running dijkstra once for each i
 		dist[i] = dijkstra_alg_tz (write_graph, heap);
 
-		#ifdef DEBUG
-		pp_graph (write_graph);
-		printf ("prepro dijkstra result for i=%d\n", i);
-		pp_nodes (dist[i], n);
-		#endif
-
 		// Finding the pivot elements
 		pivot_nodes[i] = find_pivot (pivot_nodes[i+1], dist[i], n);
 		// Copy the pivot nodes to the piv of bunches
@@ -514,25 +498,13 @@ struct prepro *prepro (struct graph *graph, int k)
 			bunchlist->bunches[j].piv[i] = pivot_nodes[i][j];
 		}
 
-		#ifdef DEBUG
-		pp_pivots (bunchlist, nodes, n, i);
-		#endif
-
 		C[i] = construct_clusters (graph, A, pivot_nodes[i+1], i, k);
-
-		#ifdef DEBUG
-		pp_clusters (C, i);
-		#endif
 
 		free_graph (write_graph);
 		FREE (dist[i]);
 	}
 
 	construct_bunches (C, k, bunchlist);
-
-	#ifdef DEBUG
-	pp_bunches (bunchlist, k);
-	#endif
 
 	prepro->nodes = nodes;
 	prepro->bunchlist = bunchlist;

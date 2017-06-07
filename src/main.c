@@ -16,22 +16,12 @@ CLOCKS_PER_SEC is a constant which is declared in time.h. To get the CPU time us
 returns the amount of time the OS has spent running your process, and not the actual amount of time elapsed. However, this is fine for timing a block of code, but not measuring time elapsing in the real world
 Fx. tænk på sleep - CPUen arbejder så ikke, således vil den ikke tælle det med
 */
-// Hvad nu fx. hvis k = 3, og mængder p_1 = p_2 så er der ingen cluster i i=1. Så giver det problemer i dist query algoritmen.
-// TODO: Lav i filehandling en funktion til at lave lookup af distancen (u, v) i output.csv
 // TODO: tid, plads, og hvor tæt kommer jeg på Dijkstras (SSP)
 // tid, plads skal være hardware.
 // Stemmer ekspirementerne overens med teori?
 // du skal dog nævne i din rapport, hvilken hash table du bruger
 // Skriv i rapport om at man kan udvide med floats
 // Hash table for en knude v skal indeholde netop de knuder w, der tilhører B(v), og disse knuder w er netop dem, hvor v tilhører C(w).
-	// zero level: B(v) for v in V.
-/*
-  Finally, the algorithm constructs (2-level) hash tables for the bunches B(v), for
-  v ∈ V, and outputs the witnesses p_i(v), the distances δ(p_i(v), v) = δ(A_i, v), and
-  the hash tables of B(v), for every 1 ≤ i ≤ k and v ∈ V. In addition to that, the
-  preprocessing algorithm also outputs, for every w ∈ V, the shortest paths tree T (w)
-  that spans the cluster C(w).
- */
 // Dijkstra requies no extra space!!
 // HVilken compiler, CPU, RAM osv jeg bruger.
 // større k, mindre pladsforbrug
@@ -44,7 +34,6 @@ Fx. tænk på sleep - CPUen arbejder så ikke, således vil den ikke tælle det 
 // Checks whether w in B(v) and retrieves d(w, v)
 // TODO: Skal det være en 2-level table med den foreslående hash funktion?
 // TODO: Husk også at gemme afstanden i Bunches
-// by definition, w ∈ B(v) if and only if v ∈ C(w).
 // TODO: Have all pointer be with the variable name
 // Bunche gen. er som DFS? (spørg ellers Christian)
 // Skriv til uthash om hash funktioner
@@ -53,6 +42,191 @@ Fx. tænk på sleep - CPUen arbejder så ikke, således vil den ikke tælle det 
 // Skriv i rapporten hvad der sker når grafen ikke er sammenhængende...
 // cat /proc/cpuinfo
 // https://stackoverflow.com/questions/63166/how-to-determine-cpu-and-memory-consumption-from-inside-a-process
+
+void test_prepro ()
+{
+	int k, n, u, v, d;
+	double cpu_time_spent;
+	k = 3, n = 5, u = 1, v = 4;
+	struct graph *graph = init_graph (n);
+	add_edges (graph, 0, 1, 10);
+	add_edges (graph, 0, 2, 5);
+	add_edges (graph, 0, 4, 7);
+	add_edges (graph, 1, 2, 2);
+	add_edges (graph, 1, 3, 1);
+	add_edges (graph, 2, 3, 9);
+	add_edges (graph, 2, 4, 2);
+	add_edges (graph, 3, 4, 4);
+
+	clock_t begin = clock();
+	printf ("Memory before running prepro = %d KB %d KB\n", get_vm_peak(), get_current_vm ());
+	struct prepro *pp = malloc (sizeof (struct prepro));
+	pp->success = false;
+	while (!pp->success) {
+		pp = prepro (graph, k);
+		sleep (1);
+	}
+	clock_t end = clock();
+	cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+	printf ("Time spent on prepro Thorup-Zwick: %f\n", cpu_time_spent);
+	printf ("Memory usage of prepro = %d KB %d KB\n", get_vm_peak(), get_current_vm ());
+
+	clock_t begin2 = clock();
+	d = dist (&pp->nodes[u], &pp->nodes[v], pp->bunchlist);
+	clock_t end2 = clock();
+	cpu_time_spent = (double)(end2 - begin2) / CLOCKS_PER_SEC;
+	printf ("Time spent on query Thorup-Zwick: %f\n", cpu_time_spent);
+	printf ("Result of Thorup-Zwick dist (%d, %d) = %d\n", u, v, d);
+	printf ("Memory usage of dist = %d KB %d KB\n", get_vm_peak(), get_current_vm ());
+
+	graph = init_graph (n);
+	add_edges (graph, 0, 1, 10);
+	add_edges (graph, 0, 2, 5);
+	add_edges (graph, 0, 4, 7);
+	add_edges (graph, 1, 2, 2);
+	add_edges (graph, 1, 3, 1);
+	add_edges (graph, 2, 3, 9);
+	add_edges (graph, 2, 4, 2);
+	add_edges (graph, 3, 4, 4);
+
+	clock_t begin3 = clock();
+	struct node *S = dijkstra_alg (graph, u);
+	clock_t end3 = clock();
+	cpu_time_spent = (double)(end3 - begin3) / CLOCKS_PER_SEC;
+	printf ("Result of Dijkstra SSP (%d, %d) = %d\n", u, v, S[v-offset].sp_est);
+	printf ("Time spent on running Dijkstra: %f\n", cpu_time_spent);
+	printf ("Memory usage of Dijkstra = %d KB %d KB\n", get_vm_peak(), get_current_vm ());
+
+	graph = init_graph (n);
+	add_edges (graph, 0, 1, 10);
+	add_edges (graph, 0, 2, 5);
+	add_edges (graph, 0, 4, 7);
+	add_edges (graph, 1, 2, 2);
+	add_edges (graph, 1, 3, 1);
+	add_edges (graph, 2, 3, 9);
+	add_edges (graph, 2, 4, 2);
+	add_edges (graph, 3, 4, 4);
+	printf ("BIDIRECTIONAL DIJKSTRA %d\n", bidirectional_dijkstra (graph, u, v));
+
+	return;
+}
+
+// Hardcoded tests from various sources
+void hardcoded_tests ()
+{
+	// From the author
+	struct graph* graph_1 = init_graph (5);
+	add_edges (graph_1, 0, 1, 3);
+	add_edges (graph_1, 0, 2, 5);
+	add_edges (graph_1, 1, 2, 1);
+	add_edges (graph_1, 2, 3, 10);
+	add_edges (graph_1, 3, 4, 2);
+	/* struct node *S_1 = dijkstra_alg (graph_1, 0); */
+	/* pp_nodes (S_1, 5); */
+	int out;
+	out = bidirectional_dijkstra (graph_1, 0, 4);
+	printf ("out: %d\n", out);
+	pp_graph (graph_1);
+
+	printf ("------------------------\n");
+	// From: http://www.geeksforgeeks.org/greedy-algorithms-set-7-dijkstras-algorithm-for-adjacency-list-representation/
+	struct graph* graph = init_graph (9);
+	add_edges(graph, 0, 1, 4);
+	add_edges(graph, 0, 7, 8);
+	add_edges(graph, 1, 2, 8);
+	add_edges(graph, 1, 7, 11);
+	add_edges(graph, 2, 3, 7);
+	add_edges(graph, 2, 8, 2);
+	add_edges(graph, 2, 5, 4);
+	add_edges(graph, 3, 4, 9);
+	add_edges(graph, 3, 5, 14);
+	add_edges(graph, 4, 5, 10);
+	add_edges(graph, 5, 6, 2);
+	add_edges(graph, 6, 7, 1);
+	add_edges(graph, 6, 8, 6);
+	add_edges(graph, 7, 8, 7);
+	/* pp_graph (graph); */
+	/* struct node *S_2 = dijkstra_alg (graph, 3); */
+	out = bidirectional_dijkstra (graph, 0, 1);
+	printf ("geeks: out: 1 %d\n", out);
+	out = bidirectional_dijkstra (graph, 0, 2);
+	printf ("geeks: out: 2 %d\n", out);
+	out = bidirectional_dijkstra (graph, 0, 3);
+	printf ("geeks: out: 3 %d\n", out);
+	out = bidirectional_dijkstra (graph, 0, 4);
+	printf ("geeks: out: 4 %d\n", out);
+	out = bidirectional_dijkstra (graph, 0, 5);
+	printf ("geeks: out: 5 %d\n", out);
+	out = bidirectional_dijkstra (graph, 0, 6);
+	printf ("geeks: out: 6 %d\n", out);
+	out = bidirectional_dijkstra (graph, 0, 7);
+	printf ("geeks: out: 7 %d\n", out);
+	out = bidirectional_dijkstra (graph, 0, 8);
+	printf ("geeks: out: 8 %d\n", out);
+	/* printf ("------------------------\n"); */
+
+	/* // From CLRS p. 659 (though it is directed) */
+	struct graph* graph_3 = init_graph (5);
+	add_edges (graph_3, 0, 1, 10);
+	add_edges (graph_3, 0, 2, 5);
+	add_edges (graph_3, 0, 4, 7);
+	add_edges (graph_3, 1, 2, 2);
+	add_edges (graph_3, 1, 3, 1);
+	add_edges (graph_3, 2, 3, 9);
+	add_edges (graph_3, 2, 4, 2);
+	add_edges (graph_3, 3, 4, 4);
+	/* pp_graph (graph_3); */
+	/* pp_graph (graph_3); */
+	struct node *S_3 = dijkstra_alg (graph_3, 0);
+	pp_nodes (S_3, 5);
+	out = bidirectional_dijkstra (graph_3, 0, 1);
+	printf ("out: %d\n", out);
+	out = bidirectional_dijkstra (graph_3, 0, 2);
+	printf ("out: %d\n", out);
+	out = bidirectional_dijkstra (graph_3, 0, 3);
+	printf ("out: %d\n", out);
+	out = bidirectional_dijkstra (graph_3, 0, 4);
+	printf ("out: %d\n", out);
+
+	// http://liu.diva-portal.org/smash/get/diva2:114159/FULLTEXT01 (p. 26)
+	struct graph* graph_5 = init_graph (6);
+	add_edges (graph_5, 0, 1, 3);
+	add_edges (graph_5, 0, 2, 1);
+	add_edges (graph_5, 1, 3, 1);
+	add_edges (graph_5, 2, 4, 4);
+	add_edges (graph_5, 4, 5, 1);
+	pp_graph (graph_5);
+	out = bidirectional_dijkstra (graph_5, 0, 5);
+	printf ("her: out: %d\n", out);
+
+	struct graph* graph_4 = init_graph (3);
+	add_edges (graph_4, 0, 1, 1);
+	add_edges (graph_4, 1, 2, 1);
+	add_edges (graph_4, 0, 2, 5);
+	pp_graph (graph_4);
+	out = bidirectional_dijkstra (graph_4, 0, 2);
+	printf ("out: %d\n", out);
+
+	struct graph* graph_6 = init_graph (9);
+	add_edges (graph_6, 0, 1, 4);
+	add_edges (graph_6, 0, 2, 5);
+	add_edges (graph_6, 0, 3, 7);
+	add_edges (graph_6, 3, 5, 4);
+	add_edges (graph_6, 3, 6, 6);
+	add_edges (graph_6, 1, 4, 9);
+	add_edges (graph_6, 2, 5, 3);
+	add_edges (graph_6, 5, 7, 5);
+	add_edges (graph_6, 5, 4, 12);
+	add_edges (graph_6, 7, 8, 3);
+	add_edges (graph_6, 4, 8, 13);
+	add_edges (graph_6, 6, 8, 9);
+	pp_graph (graph_6);
+	out = bidirectional_dijkstra (graph_6, 1, 6);
+	printf ("out: %d\n", out);
+	struct node *S = dijkstra_alg (graph_6, 1);
+	pp_nodes (S, 9);
+	exit (0);
+}
 
 /**
  * help - a help utility

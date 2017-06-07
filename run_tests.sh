@@ -34,6 +34,12 @@ done
 # The new file included in final print file
 NEWINPUTFILE=${INPUTFILE:i+1}
 
+# check if folder benchmarks exists
+if [ ! -d "benchmarks" ]; then
+	mkdir benchmarks
+
+fi
+
 name=""
 
 if [ $DEBUG = 'y' ]; then

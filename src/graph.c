@@ -105,7 +105,6 @@ struct heap *initialise_single_source_tz (unsigned int n)
 
 	for (unsigned int i = 0; i < n; i++) {
 		heap->nodes[i] = add_node (i, val, i);
-		/* memcpy (&graph->adjlists[i].nd, &heap->nodes[i], sizeof (struct node*)); */
 	}
 
 	heap->heap_size = n;
@@ -147,6 +146,168 @@ struct node *dijkstra_alg_tz (struct graph *graph, struct heap *Q)
 		graph->adjlists[u->v_id].nd = NULL;
 	}
 
+	free_heap (Q);
+	return S;
+}
+
+/**
+ * bidirectional_dijkstra - Bidirectional Dijkstra's algorithm
+ * @gf: the graph G = (V, E) for the forward search
+ * @u: source vertex
+ * @v: target vertex
+ * Running time: O((m + n) lg n)
+ * Running Dijkstra's from the source (forward search) AND target vertex (target vertex).
+ * We have two graph struct, one for the forward search, one for the backward search.
+ * We start the execution by initialising two heaps, with u and v as single vertices.
+ * Then we execute one search at a time.
+ */
+int bidirectional_dijkstra (struct graph *gf, int u, int v)
+{
+	struct heap *QI = malloc (sizeof (struct heap));
+	QI->nodes = malloc (gf->V * sizeof(struct node*));
+	struct heap *QG = malloc (sizeof (struct heap));
+	QG->nodes = malloc (gf->V * sizeof(struct node*));
+	int *in_QI_heap = calloc (gf->V, sizeof (int));
+	int *in_QG_heap = calloc (gf->V, sizeof (int));
+	int *relaxed_1 = calloc (gf->V, sizeof(int));
+	int *relaxed_2 = calloc (gf->V, sizeof(int));
+
+	struct node *S_1 = malloc (gf->V * sizeof (struct node));
+	memset (S_1, 0, gf->V * sizeof (struct node));
+	struct node *S_2 = malloc (gf->V * sizeof (struct node));
+	memset (S_2, 0, gf->V * sizeof (struct node));
+
+	QI->heap_size = 0;
+	QG->heap_size = 0;
+	// graph for backward search
+	struct graph *gb = copy_graph_struct (gf, QI);
+	min_heap_insert (QI, u, 0, gf);
+	min_heap_insert (QG, v, 0, gb);
+	int best_estimate = (int) INFINITY;
+
+	while (QI->heap_size != 0 && QG->heap_size != 0) {
+		int topqi = (minimum (QI))->sp_est;
+		int topqg = (minimum (QG))->sp_est;
+		if (topqi == (int) INFINITY || topqg == (int) INFINITY) {
+			return (int) INFINITY;
+		}
+		if (topqi < topqg) {
+			struct node *fir = extract_min (QI);
+			memcpy (&S_1[fir->v_id], fir, sizeof(struct node));
+			for (struct adjlistnode *s = gf->adjlists[fir->v_id].head;
+				 s != NULL; s = s->next) {
+				struct node *v = gf->adjlists[s->v_id].nd;
+				int sp_est = fir->sp_est + s->weight;
+				if (!relaxed_1[s->v_id] && !in_QI_heap[s->v_id]) {
+					min_heap_insert (QI, s->v_id, sp_est, gf);
+					gf->adjlists[s->v_id].nd->pi = fir;
+					in_QI_heap[s->v_id] = 1;
+				} else if (v != NULL && v->sp_est > sp_est && !relaxed_1[s->v_id]) {
+					decrease_key (QI, v, fir, sp_est);
+				}
+			}
+			relaxed_1[fir->v_id] = 1;
+			if (relaxed_1[fir->v_id] && relaxed_2[fir->v_id]) {
+				if (best_estimate >= S_1[fir->v_id].sp_est + S_2[fir->v_id].sp_est) {
+					best_estimate = S_1[fir->v_id].sp_est + S_2[fir->v_id].sp_est;
+				} else {
+					return best_estimate;
+				}
+			}
+		} else {
+			struct node *sec = extract_min (QG);
+			memcpy (&S_2[sec->v_id], sec, sizeof(struct node));
+			for (struct adjlistnode *s = gb->adjlists[sec->v_id].head;
+				 s != NULL; s = s->next) {
+				struct node *v = gb->adjlists[s->v_id].nd;
+				int sp_est = sec->sp_est + s->weight;
+				if (!relaxed_2[s->v_id] && !in_QG_heap[s->v_id]) {
+					min_heap_insert (QG, s->v_id, sp_est, gb);
+					gb->adjlists[s->v_id].nd->pi = sec;
+					in_QG_heap[s->v_id] = sp_est;
+				} else if (v != NULL && v->sp_est > sp_est && !relaxed_2[s->v_id]) {
+					decrease_key (QG, v, sec, sp_est);
+				}
+			}
+			relaxed_2[sec->v_id] = 1;
+			if (relaxed_1[sec->v_id] && relaxed_2[sec->v_id]) {
+				if (best_estimate >= S_1[sec->v_id].sp_est + S_2[sec->v_id].sp_est) {
+					best_estimate = S_1[sec->v_id].sp_est + S_2[sec->v_id].sp_est;
+				} else {
+					return best_estimate;
+				}
+			}
+		}
+	}
+
+	free_heap (QI);
+	free_heap (QG);
+	FREE (S_1);
+	FREE (S_2);
+	FREE (in_QI_heap);
+	FREE (in_QG_heap);
+	FREE (relaxed_1);
+	FREE (relaxed_2);
+
+	return best_estimate;
+}
+
+/**
+ * initialise_single_source - initialising a heap from a single source
+ * @graph: graph
+ * @s: source vertex id
+ * Running time: O(n)
+ */
+struct heap *initialise_single_source (struct graph *graph, int s)
+{
+	struct heap *heap = malloc (sizeof (struct heap));
+	heap->nodes = malloc(graph->V * sizeof(struct node*));
+
+	if (heap == NULL || heap->nodes == NULL) {
+		printf ("Pointer error of heap\n");
+		return NULL;
+	}
+
+	int val = (int) INFINITY;
+
+	for (unsigned int i = 0; i < graph->V; i++) {
+		struct node *tmp = add_node (i, val, i);
+		heap->nodes[i] = tmp;
+		memcpy (&graph->adjlists[i].nd, &heap->nodes[i], sizeof (struct node*));
+	}
+
+	heap->heap_size = graph->V;
+	struct node *v = graph->adjlists[s].nd;
+	heap->nodes[v->v_id]->sp_est = 0;
+	find_node_pos (heap, v->v_id);
+
+	return heap;
+}
+
+/**
+ * dijkstra_alg - Dijkstra's original algorithm
+ * @graph: graph
+ * @s: source vertex id
+ * Running time: O((m + n) lg n)
+ * Searching all shortest-paths from a single source, that is, s
+ */
+struct node *dijkstra_alg (struct graph *graph, int s)
+{
+	struct heap *Q = initialise_single_source (graph, s);
+	struct node *S = malloc (Q->heap_size * sizeof (struct node));
+	while (Q->heap_size != 0) {
+		struct node *u = extract_min (Q);
+		memcpy (&S[u->v_id], u, sizeof (struct node));
+		for (struct adjlistnode *s = graph->adjlists[u->v_id].head;
+			 s != NULL; s = s->next) {
+			struct node *v = graph->adjlists[s->v_id].nd;
+			if ((v != NULL) && (v->sp_est > u->sp_est + s->weight)) {
+				int sp_est = u->sp_est + s->weight;
+				decrease_key (Q, v, u, sp_est);
+			}
+		}
+		graph->adjlists[u->v_id].nd = NULL;
+	}
 	free_heap (Q);
 	return S;
 }

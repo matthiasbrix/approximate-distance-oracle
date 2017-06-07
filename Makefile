@@ -7,7 +7,7 @@ TESTSDIR = tests
 
 .PHONY: clean
 
-all : priorityqueue graph filehandling thorupzwick testinglibrary main
+all : priorityqueue graph filehandling thorupzwick main
 
 rebuild : clean all
 
@@ -23,10 +23,7 @@ filehandling : $(SOURCEDIR)/filehandling.c $(SOURCEDIR)/filehandling.h $(BINDIR)
 thorupzwick : $(SOURCEDIR)/thorupzwick.c $(SOURCEDIR)/thorupzwick.h $(BINDIR)/graph.o $(BINDIR)/priorityqueue.o $(BINDIR)/filehandling.o
 	$(CC) $(CFLAGS) -c $< -o $(BINDIR)/$@.o
 
-testinglibrary : $(SOURCEDIR)/testinglibrary.c $(SOURCEDIR)/testinglibrary.h $(BINDIR)/graph.o $(BINDIR)/priorityqueue.o
-	$(CC) $(CFLAGS) -c $< -o $(BINDIR)/$@.o
-
-main : $(SOURCEDIR)/main.c $(SOURCEDIR)/main.h $(BINDIR)/thorupzwick.o $(BINDIR)/graph.o $(BINDIR)/priorityqueue.o $(BINDIR)/filehandling.o $(BINDIR)/testinglibrary.o
+main : $(SOURCEDIR)/main.c $(SOURCEDIR)/main.h $(BINDIR)/thorupzwick.o $(BINDIR)/graph.o $(BINDIR)/priorityqueue.o $(BINDIR)/filehandling.o
 	$(CC) $(CFLAGS) $< $(BINDIR)/*.o -o $(BINDIR)/$@ -lm
 
 clean :

@@ -84,7 +84,7 @@ void add_s_node_to_graph (struct graph *graph, struct aseq *ai)
  * find_pivot - finding all pivot elements for v in A_i
  * @aiplusone_pivot_arr: A_i+1 set
  * @n: number of nodes in graph, |V|=n
- * Running time: O(n)
+ * Running time: O(m)
  * Not looping through all v in V and A sets, otherwise running time could be O(n^2)
  * If v.pi = s, it is a pivot node
  * If a node has been visited by a traversing one, save the visitor, such that

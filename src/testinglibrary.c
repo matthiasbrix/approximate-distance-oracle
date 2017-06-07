@@ -2,31 +2,8 @@
 
 int bidirectional_dijkstra (struct graph *graph, int xi, int xg);
 
-/* void test () { */
-/* 	struct node *ja = (malloc (1024*1024*20 * sizeof(struct node)));; */
-/* 	ja = ja; */
-/* 	printf ("2 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm ()); */
-/* } */
-
 void test_prepro ()
 {
-	/* printf ("1 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm ()); */
-	/* struct node *hi = (malloc (1024*1024*20 * sizeof(struct node))); */
-	/* printf ("2 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm ()); */
-	/* hi = hi; */
-	/* /\* free (hi); *\/ */
-	/* printf ("3 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm ()); */
-	/* struct node *hi2 = (malloc (1024*1024*20 * sizeof(struct node))); */
-	/* printf ("4 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm ()); */
-	/* hi2 = hi2; */
-	/* /\* free (hi2); *\/ */
-
-	/* printf ("5 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm ()); */
-	/* struct node *hi3 = (malloc (1024*1024*20 * sizeof(struct node))); */
-	/* printf ("5 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm ()); */
-	/* hi3 = hi3; */
-	/* test (); */
-	/* printf ("6 %d KB %d KB %d KB\n", get_vm_peak(), get_current_vm ()); */
 	int k, n, u, v, d;
 	double cpu_time_spent;
 	k = 3, n = 5, u = 1, v = 4;
@@ -259,48 +236,46 @@ struct node *dijkstra_alg (struct graph *graph, int s)
 	return S;
 }
 
-// http://planning.cs.uiuc.edu/node50.html
-// http://www.cs.princeton.edu/courses/archive/spr06/cos423/Handouts/EPP%20shortest%20path%20algorithms.pdf
 // where they suggest the correct stopping condition is that the sum of the values at the top of each heap (forward and reverse) >= the length of the shortest path seen so far. Once that condition holds, the shortest path seen so far is the shortest path.
-int bidirectional_dijkstra (struct graph *graph, int u, int v)
+int bidirectional_dijkstra (struct graph *gf, int u, int v)
 {
 	struct heap *QI = malloc (sizeof (struct heap));
-	QI->nodes = malloc (graph->V * sizeof(struct node*));
+	QI->nodes = malloc (gf->V * sizeof(struct node*));
 	struct heap *QG = malloc (sizeof (struct heap));
-	QG->nodes = malloc (graph->V * sizeof(struct node*));
-		int *in_QI_heap = calloc (graph->V, sizeof (int));
-	int *in_QG_heap = calloc (graph->V, sizeof (int));
-	int *relaxed_1 = calloc (graph->V, sizeof(int));
-	int *relaxed_2 = calloc (graph->V, sizeof(int));
+	QG->nodes = malloc (gf->V * sizeof(struct node*));
+	int *in_QI_heap = calloc (gf->V, sizeof (int));
+	int *in_QG_heap = calloc (gf->V, sizeof (int));
+	int *relaxed_1 = calloc (gf->V, sizeof(int));
+	int *relaxed_2 = calloc (gf->V, sizeof(int));
 
-	struct node *S_1 = malloc (graph->V * sizeof (struct node));
-	memset (S_1, 0, graph->V * sizeof (struct node));
-	struct node *S_2 = malloc (graph->V * sizeof (struct node));
-	memset (S_2, 0, graph->V * sizeof (struct node));
+	struct node *S_1 = malloc (gf->V * sizeof (struct node));
+	memset (S_1, 0, gf->V * sizeof (struct node));
+	struct node *S_2 = malloc (gf->V * sizeof (struct node));
+	memset (S_2, 0, gf->V * sizeof (struct node));
 
 	QI->heap_size = 0;
 	QG->heap_size = 0;
-	struct graph *g = copy_graph_struct (graph, QI);
-	min_heap_insert (QI, u, 0, g);
-	min_heap_insert (QG, v, 0, graph);
+	struct graph *gb = copy_graph_struct (gf, QI);
+	min_heap_insert (QI, u, 0, gf);
+	min_heap_insert (QG, v, 0, gb);
 	int best_estimate = (int) INFINITY;
 
 	while (QI->heap_size != 0 && QG->heap_size != 0) {
-		int a = (minimum (QI))->sp_est;
-		int b = (minimum (QG))->sp_est;
-		if (a == (int) INFINITY || b == (int) INFINITY) {
+		int topqi = (minimum (QI))->sp_est;
+		int topqg = (minimum (QG))->sp_est;
+		if (topqi == (int) INFINITY || topqg == (int) INFINITY) {
 			return (int) INFINITY;
 		}
-		if (a < b) {
+		if (topqi < topqg) {
 			struct node *fir = extract_min (QI);
 			memcpy (&S_1[fir->v_id], fir, sizeof(struct node));
-			for (struct adjlistnode *s = g->adjlists[fir->v_id].head;
+			for (struct adjlistnode *s = gf->adjlists[fir->v_id].head;
 				 s != NULL; s = s->next) {
-				struct node *v = g->adjlists[s->v_id].nd;
+				struct node *v = gf->adjlists[s->v_id].nd;
 				int sp_est = fir->sp_est + s->weight;
 				if (!relaxed_1[s->v_id] && !in_QI_heap[s->v_id]) {
-					min_heap_insert (QI, s->v_id, sp_est, g);
-					g->adjlists[s->v_id].nd->pi = fir;
+					min_heap_insert (QI, s->v_id, sp_est, gf);
+					gf->adjlists[s->v_id].nd->pi = fir;
 					in_QI_heap[s->v_id] = 1;
 				} else if (v != NULL && v->sp_est > sp_est && !relaxed_1[s->v_id]) {
 					decrease_key (QI, v, fir, sp_est);
@@ -317,13 +292,13 @@ int bidirectional_dijkstra (struct graph *graph, int u, int v)
 		} else {
 			struct node *sec = extract_min (QG);
 			memcpy (&S_2[sec->v_id], sec, sizeof(struct node));
-			for (struct adjlistnode *s = graph->adjlists[sec->v_id].head;
+			for (struct adjlistnode *s = gb->adjlists[sec->v_id].head;
 				 s != NULL; s = s->next) {
-				struct node *v = graph->adjlists[s->v_id].nd;
+				struct node *v = gb->adjlists[s->v_id].nd;
 				int sp_est = sec->sp_est + s->weight;
 				if (!relaxed_2[s->v_id] && !in_QG_heap[s->v_id]) {
-					min_heap_insert (QG, s->v_id, sp_est, graph);
-					graph->adjlists[s->v_id].nd->pi = sec;
+					min_heap_insert (QG, s->v_id, sp_est, gb);
+					gb->adjlists[s->v_id].nd->pi = sec;
 					in_QG_heap[s->v_id] = sp_est;
 				} else if (v != NULL && v->sp_est > sp_est && !relaxed_2[s->v_id]) {
 					decrease_key (QG, v, sec, sp_est);

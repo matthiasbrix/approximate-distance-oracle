@@ -204,8 +204,8 @@ void write_to_csv (const char *fname, const char *input_file, int n, int m,
 				 "Input file", "Algorithm", "n=|V| (# vertices)",
 				 "m=|E| (# edges)","k integer", "vertex u",
 				 "vertex v", "d(u - v)", "prepro time (s)",
-				 "dist time (s)", "prepro memory (KB)",
-				 "dist memory (KB)", "peak memory consumption (KB)");
+				 "query time (s)", "prepro memory (KB)",
+				 "query memory (KB)", "peak memory consumption (KB)");
 	}
 	time_t clk = time(NULL);
 	char *time = ctime(&clk);
@@ -221,7 +221,7 @@ void write_to_csv (const char *fname, const char *input_file, int n, int m,
 				 "", dijkstra->dist_time, "", "", dijkstra->memory_consump);
 	} else if (bdj != NULL) {
 		fprintf (file, "\n%s,%s,%s,%d,%d,%s,%d,%d,%d,%s,%f,%s,%s,%d", time,
-				 input_file, "Bidirectional-Dijkstra", n, m, "", u, v, bdj->dist,
+				 input_file, "Bidirectional Dijkstra", n, m, "", u, v, bdj->dist,
 				 "", bdj->dist_time, "", "", bdj->memory_consump);
 	}
 

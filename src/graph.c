@@ -60,7 +60,7 @@ void add_edges (struct graph *graph, int u, int v, unsigned int w)
 /**
  * copy_graph_struct - deep copy of a graph struct
  * @old_graph: graph struct to be copied
- * @heap: heap pointer
+ * @heap: heap pointer of which the nodes the graph points to nodes of heap
  * Running time: O(n + m)
  * deep copying all content from old_graph to a new. Also,
  * we keep a bidirectional pointer between graph and heap for lookup
@@ -163,99 +163,121 @@ struct node *dijkstra_alg_tz (struct graph *graph, struct heap *Q)
  */
 int bidirectional_dijkstra (struct graph *gf, int u, int v)
 {
-	struct heap *QI = malloc (sizeof (struct heap));
-	QI->nodes = malloc (gf->V * sizeof(struct node*));
-	struct heap *QG = malloc (sizeof (struct heap));
-	QG->nodes = malloc (gf->V * sizeof(struct node*));
-	int *in_QI_heap = calloc (gf->V, sizeof (int));
-	int *in_QG_heap = calloc (gf->V, sizeof (int));
-	int *relaxed_1 = calloc (gf->V, sizeof(int));
-	int *relaxed_2 = calloc (gf->V, sizeof(int));
+	// min-prioty queue for forward search
+	struct heap *Q_1 = malloc (sizeof (struct heap));
+	Q_1->nodes = malloc (gf->V * sizeof(struct node*));
+	// min-prioty queue for backwards search
+	struct heap *Q_2 = malloc (sizeof (struct heap));
+	Q_2->nodes = malloc (gf->V * sizeof(struct node*));
+	// Auxiliary arrays
+	int *in_Q1_heap = calloc (gf->V, sizeof (int));
+	int *in_Q2_heap = calloc (gf->V, sizeof (int));
+	int *extracted_1 = calloc (gf->V, sizeof(int));
+	int *extracted_2 = calloc (gf->V, sizeof(int));
+	int rootqi;
+	int rootqg;
 
+	// For forward search
 	struct node *S_1 = malloc (gf->V * sizeof (struct node));
 	memset (S_1, 0, gf->V * sizeof (struct node));
+	// For backwards search
 	struct node *S_2 = malloc (gf->V * sizeof (struct node));
 	memset (S_2, 0, gf->V * sizeof (struct node));
 
-	QI->heap_size = 0;
-	QG->heap_size = 0;
-	struct graph *gb = copy_graph_struct (gf, QG);
-	min_heap_insert (QI, u, 0, gf);
-	min_heap_insert (QG, v, 0, gb);
-	int best_estimate = (int) INFINITY;
+	if (Q_1 == NULL || Q_2 == NULL || in_Q1_heap == NULL || in_Q2_heap == NULL ||
+		extracted_1 == NULL || extracted_2 == NULL || S_1 == NULL || S_2 == NULL) {
+		perror ("Pointer error in bidirectional dijkstra.\n");
+		return EXIT_FAILURE;
+	}
 
-	while (QI->heap_size != 0 && QG->heap_size != 0) {
-		int topqi = (minimum (QI))->sp_est;
-		int topqg = (minimum (QG))->sp_est;
+	Q_1->heap_size = 0;
+	Q_2->heap_size = 0;
+	// Copy of graph for backwards search
+	struct graph *gb = copy_graph_struct (gf, Q_2);
+	min_heap_insert (Q_1, u, 0, gf);
+	min_heap_insert (Q_2, v, 0, gb);
+	int sp_estimate = (int) INFINITY;
 
-		if (topqi < topqg) {
-			struct node *fir = extract_min (QI);
-			memcpy (&S_1[fir->v_id], fir, sizeof(struct node));
-			for (struct adjlistnode *s = gf->adjlists[fir->v_id].head;
+	while (Q_1->heap_size != 0 && Q_2->heap_size != 0) {
+
+		rootqi = (minimum (Q_1))->sp_est;
+		rootqg = (minimum (Q_2))->sp_est;
+
+		if (rootqi < rootqg) {
+			// Forward search begins here
+			struct node *u = extract_min (Q_1);
+			memcpy (&S_1[u->v_id], u, sizeof(struct node));
+			for (struct adjlistnode *s = gf->adjlists[u->v_id].head;
 				 s != NULL; s = s->next) {
 				struct node *v = gf->adjlists[s->v_id].nd;
-				int sp_est = fir->sp_est + s->weight;
-				if (!relaxed_1[s->v_id] && !in_QI_heap[s->v_id]) {
-					min_heap_insert (QI, s->v_id, sp_est, gf);
-					gf->adjlists[s->v_id].nd->pi = fir;
-					in_QI_heap[s->v_id] = sp_est;
-				} else if (v != NULL && (v->sp_est > sp_est) && !relaxed_1[s->v_id]) {
-					decrease_key (QI, v, fir, sp_est);
-					in_QI_heap[s->v_id] = sp_est;
+				int sp_est = u->sp_est + s->weight;
+				if (!extracted_1[s->v_id] && !in_Q1_heap[s->v_id]) {
+					min_heap_insert (Q_1, s->v_id, sp_est, gf);
+					gf->adjlists[s->v_id].nd->pi = u;
+					in_Q1_heap[s->v_id] = sp_est;
+				} else if (v != NULL && (v->sp_est > sp_est) && !extracted_1[s->v_id]) {
+					decrease_key (Q_1, v, u, sp_est);
+					in_Q1_heap[s->v_id] = sp_est;
 				}
 			}
-			relaxed_1[fir->v_id] = 1;
-			if (relaxed_1[fir->v_id] && relaxed_2[fir->v_id]) {
-				if (best_estimate >= S_1[fir->v_id].sp_est + S_2[fir->v_id].sp_est) {
-					best_estimate = S_1[fir->v_id].sp_est + S_2[fir->v_id].sp_est;
+			extracted_1[u->v_id] = 1;
+			// u intersects in S_1 and S_2
+			if (extracted_1[u->v_id] && extracted_2[u->v_id]) {
+				if (sp_estimate >= S_1[u->v_id].sp_est + S_2[u->v_id].sp_est) {
+					sp_estimate = S_1[u->v_id].sp_est + S_2[u->v_id].sp_est;
 				} else {
-					return best_estimate;
+					return sp_estimate;
 				}
-			} else if (in_QI_heap[fir->v_id] && in_QG_heap[fir->v_id] &&
-				best_estimate >= in_QI_heap[fir->v_id] + in_QG_heap[fir->v_id]) {
-				best_estimate = in_QI_heap[fir->v_id] + in_QG_heap[fir->v_id];
+				// u intersects in Q_1 and Q_2
+			} else if (in_Q1_heap[u->v_id] && in_Q2_heap[u->v_id] &&
+				sp_estimate >= in_Q1_heap[u->v_id] + in_Q2_heap[u->v_id]) {
+				sp_estimate = in_Q1_heap[u->v_id] + in_Q2_heap[u->v_id];
 			}
 		} else {
-			struct node *sec = extract_min (QG);
-			memcpy (&S_2[sec->v_id], sec, sizeof(struct node));
-			for (struct adjlistnode *s = gb->adjlists[sec->v_id].head;
+			// Backwards search begins here
+			struct node *u = extract_min (Q_2);
+			memcpy (&S_2[u->v_id], u, sizeof(struct node));
+			for (struct adjlistnode *s = gb->adjlists[u->v_id].head;
 				 s != NULL; s = s->next) {
 				struct node *v = gb->adjlists[s->v_id].nd;
-				int sp_est = sec->sp_est + s->weight;
-				if (!relaxed_2[s->v_id] && !in_QG_heap[s->v_id]) {
-					min_heap_insert (QG, s->v_id, sp_est, gb);
-					gb->adjlists[s->v_id].nd->pi = sec;
-					in_QG_heap[s->v_id] = sp_est;
-				} else if (v != NULL && (v->sp_est > sp_est) && !relaxed_2[s->v_id]) {
-					decrease_key (QG, v, sec, sp_est);
-					in_QG_heap[s->v_id] = sp_est;
+				int sp_est = u->sp_est + s->weight;
+				if (!extracted_2[s->v_id] && !in_Q2_heap[s->v_id]) {
+					min_heap_insert (Q_2, s->v_id, sp_est, gb);
+					gb->adjlists[s->v_id].nd->pi = u;
+					in_Q2_heap[s->v_id] = sp_est;
+				} else if (v != NULL && (v->sp_est > sp_est) && !extracted_2[s->v_id]) {
+					decrease_key (Q_2, v, u, sp_est);
+					in_Q2_heap[s->v_id] = sp_est;
 				}
 			}
-			relaxed_2[sec->v_id] = 1;
-			if (relaxed_1[sec->v_id] && relaxed_2[sec->v_id]) {
-				if (best_estimate >= S_1[sec->v_id].sp_est + S_2[sec->v_id].sp_est) {
-					best_estimate = S_1[sec->v_id].sp_est + S_2[sec->v_id].sp_est;
+			extracted_2[u->v_id] = 1;
+			// u intersects in S_1 and S_2
+			if (extracted_1[u->v_id] && extracted_2[u->v_id]) {
+				if (sp_estimate >= S_1[u->v_id].sp_est + S_2[u->v_id].sp_est) {
+					sp_estimate = S_1[u->v_id].sp_est + S_2[u->v_id].sp_est;
 				} else {
-					return best_estimate;
+					return sp_estimate;
 				}
-			} else if (in_QG_heap[sec->v_id] && in_QI_heap[sec->v_id]) {
-				if (best_estimate >= in_QI_heap[sec->v_id] + in_QG_heap[sec->v_id]) {
-					best_estimate = in_QI_heap[sec->v_id] + in_QG_heap[sec->v_id];
-				}
+				// u intersects in Q_1 and Q_2
+			} else if (in_Q1_heap[u->v_id] && in_Q2_heap[u->v_id] &&
+				sp_estimate >= in_Q1_heap[u->v_id] + in_Q2_heap[u->v_id]) {
+				sp_estimate = in_Q1_heap[u->v_id] + in_Q2_heap[u->v_id];
 			}
 		}
 	}
 
-	free_heap (QI);
-	free_heap (QG);
+	free_graph (gf);
+	free_graph (gb);
+	free_heap (Q_1);
+	free_heap (Q_2);
 	FREE (S_1);
 	FREE (S_2);
-	FREE (in_QI_heap);
-	FREE (in_QG_heap);
-	FREE (relaxed_1);
-	FREE (relaxed_2);
+	FREE (in_Q1_heap);
+	FREE (in_Q2_heap);
+	FREE (extracted_1);
+	FREE (extracted_2);
 
-	return best_estimate;
+	return sp_estimate;
 }
 
 /**

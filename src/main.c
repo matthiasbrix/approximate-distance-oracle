@@ -1,47 +1,13 @@
 #include "main.h"
 
 #define MIN_REQUIRED 6
-int offset = 0;
-
-// Skriv at float kan også lade sig gøre
-// for test graphs: http://www.info.univ-angers.fr/pub/porumbel/graphs/index.html#vss
-// generator: http://illuminations.nctm.org/Activity.aspx?id=3550
-// TODO: gdb:gcc -g -o prog myfile.c another.c
-// gdb prog
-// Skelne mellme køretiden af prepro og dist, samt pladsforbrug
-// VIGTIGT: Kør tz og dijkstra begge med samme (u, v) og så sammenlign sp res, køretid og plads forbrug
-//
 /*
-CLOCKS_PER_SEC is a constant which is declared in time.h. To get the CPU time used by a task within a C application,
-returns the amount of time the OS has spent running your process, and not the actual amount of time elapsed. However, this is fine for timing a block of code, but not measuring time elapsing in the real world
-Fx. tænk på sleep - CPUen arbejder så ikke, således vil den ikke tælle det med
-*/
-// TODO: tid, plads, og hvor tæt kommer jeg på Dijkstras (SSP)
-// tid, plads skal være hardware.
-// Stemmer ekspirementerne overens med teori?
-// du skal dog nævne i din rapport, hvilken hash table du bruger
-// Skriv i rapport om at man kan udvide med floats
-// Hash table for en knude v skal indeholde netop de knuder w, der tilhører B(v), og disse knuder w er netop dem, hvor v tilhører C(w).
-// Dijkstra requies no extra space!!
-// HVilken compiler, CPU, RAM osv jeg bruger.
-// større k, mindre pladsforbrug
-// Mange kanter contra få kanter, kig også på forskellige k og knude mængder
-// Hvad der sker med prepro og query
-// HVorfor vil thorup-zwick ikke være lige så "rigtig" som normal Dijkstra?
-// http://eternallyconfuzzled.com/tuts/algorithms/jsw_tut_hashing.aspx
-// TODO: Læs om hash funktionen af uthash
-// TODO: for every v in V, generate bunches B(v) from all C(w)
-// Checks whether w in B(v) and retrieves d(w, v)
-// TODO: Skal det være en 2-level table med den foreslående hash funktion?
-// TODO: Husk også at gemme afstanden i Bunches
-// TODO: Have all pointer be with the variable name
-// Bunche gen. er som DFS? (spørg ellers Christian)
-// Skriv til uthash om hash funktioner
-// hvilke eksperimenter og hvorfor. Vis så resultater.
-// TODO: SKal jeg genindlæs grafen når jeg kører dijkstra? Skal jeg overhovedet måle indlæsningen af knuderne?
-// Skriv i rapporten hvad der sker når grafen ikke er sammenhængende...
-// cat /proc/cpuinfo
-// https://stackoverflow.com/questions/63166/how-to-determine-cpu-and-memory-consumption-from-inside-a-process
+  indicates whether the algorithms works with 1 or 0 indexed data.
+  If e.g. 1-indexed, the offset is 1 such that the backend (so how the data
+  is stored) is 0-indexed. But ALL print out would still be 1-indexed as desired.
+  The offset is measured in the input data, by finding the lowest value for the vertex id
+ */
+int offset = 0;
 
 void test_prepro ()
 {
@@ -247,7 +213,7 @@ void help () {
 }
 
 /**
- * run_bdj - wrapper function for running bidirection dijkstra from u to v
+ * run_bdj - wrapper function for running bidirectional dijkstra from u to v
  * @graph: graph with vertices and edges
  * @u: source vertex u
  * @v: target vertex v
@@ -342,8 +308,8 @@ struct tz_res *run_tz (struct graph *graph, int k, int u, int v)
 int main (int argc, char *argv[])
 {
 	if (argc == 1) {
-		hardcoded_tests ();
-		/* test_prepro (); */
+		/* hardcoded_tests (); */
+		test_prepro ();
 		return EXIT_SUCCESS;
 	}
 	if (strcmp ("--help", argv[1]) == 0) {

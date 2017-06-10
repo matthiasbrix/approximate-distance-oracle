@@ -4,8 +4,8 @@ void pp_aseqs (struct aseq **A, int k)
 {
 	printf("Pretty print all A_i sequences\n");
 	for (int i = 0; i < k; i++) {
-		if (A[i]->seqsize > 0) {
-			for (int j = 0; j < A[i]->seqsize; j++)
+		if (A[i]->setlength > 0) {
+			for (int j = 0; j < A[i]->setlength; j++)
 				printf ("A_{%d,%d} v_id:%d spest:%d\n", i, j,
 						A[i]->nodes[j].v_id+offset, A[i]->nodes[j].sp_est);
 		}
@@ -73,7 +73,7 @@ void pp_pivots (struct bunchlist *bunchlist, struct node *nodes,
  */
 void add_s_node_to_graph (struct graph *graph, struct aseq *ai)
 {
-	for (int i = 0; i < ai->seqsize; i++) {
+	for (int i = 0; i < ai->setlength; i++) {
 		add_edges (graph, graph->V, ai->nodes[i].v_id, 0);
 	}
 	return;
@@ -170,14 +170,14 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
 	int idx = 0;
 	int num_nodes = 0;
 	int *in_heap = calloc (graph->V, sizeof(int));
-	int *relaxed = calloc (graph->V, sizeof(int));
+	int *extracted = calloc (graph->V, sizeof(int));
 	struct cluster *cluster = malloc (sizeof (struct cluster));
 	struct heap *Q = malloc (sizeof (struct heap));
 	Q->nodes = malloc (graph->V * sizeof(struct node*));
 	struct node *S = malloc (graph->V * sizeof (struct node));
 
 	if (Q == NULL || S == NULL || in_heap == NULL
-		|| relaxed == NULL || Q->nodes == NULL || cluster == NULL) {
+		|| extracted == NULL || Q->nodes == NULL || cluster == NULL) {
 		perror ("Failed to allocate memory for in_heap, relaxed, S, Q, Q->nodes or cluster\n");
 		exit (-1);
 	}
@@ -193,15 +193,15 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
 		memcpy (&S[idx], u, sizeof(struct node));
 		// avoiding node u can be relaxed in next iterations,
 		// as u is no longer on heap
-		relaxed[u->v_id] = 1;
+		extracted[u->v_id] = 1;
 		in_heap[u->v_id] = 0;
 		for (struct adjlistnode *s = graph->adjlists[S[idx].v_id].head;
 			 s != NULL; s = s->next) {
 			struct node *v = graph->adjlists[s->v_id].nd;
-			if ((i == k-1 && relaxed[s->v_id] == 0) ||
+			if ((i == k-1 && extracted[s->v_id] == 0) ||
 				((pivot_nodes != 0) &&
 					 (u->sp_est + s->weight) < pivot_nodes[s->v_id].sp_est
-					 && relaxed[s->v_id] == 0)) {
+					 && extracted[s->v_id] == 0)) {
 				int sp_est = u->sp_est + s->weight;
 				if (in_heap[s->v_id] == 1) {
 					if ((v->sp_est > sp_est)) {
@@ -230,7 +230,7 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
 	cluster->w = w;
 	cluster->num_nodes = num_nodes;
 
-	FREE (relaxed);
+	FREE (extracted);
 	FREE (in_heap);
 	FREE (S);
 	free_heap (Q);
@@ -254,11 +254,11 @@ struct clusterlist *construct_clusters (struct graph *graph, struct aseq **A,
 										struct node *pivot_nodes, int i, int k)
 {
 	int num_clusters = 0;
-	struct cluster *tmp_clusters[A[i]->seqsize];
+	struct cluster *tmp_clusters[A[i]->setlength];
 	struct clusterlist *C = malloc (sizeof (struct clusterlist));
 
 	// For every w in A_i - A_i+1
-	for (int w = 0; w < A[i]->seqsize; w++) {
+	for (int w = 0; w < A[i]->setlength; w++) {
 		// for every w ∈ A_k−1 we have C(w) = V
 		// if not i==k-1, check if w in A_i - A_i+1
 		if (i < (k-1) && A[i+1]->added[A[i]->nodes[w].v_id]) {
@@ -345,7 +345,7 @@ void construct_bunches (struct clusterlist **C, int k,
 }
 
 /**
- * create_aseqs - constructing sets of vertices of A_0, ... A_k-1
+ * create_aseqs - constructing sets of vertices for A_0, ... A_k-1
  * @A: the A sequences to fill in
  * @k: k integer
  * @graph: adjacency list rep. of graph
@@ -370,27 +370,27 @@ bool create_aseqs (struct aseq **A, int k, struct graph *graph, struct node *nod
 		memcpy (&A[0]->nodes[i], &nodes[i], sizeof(struct node));
 		A[0]->added[i] = 1;
 	}
-	A[0]->seqsize = graph->V;
+	A[0]->setlength = graph->V;
 
 	srand((unsigned)time(NULL));
 
 	for (int i = 1; i <= k-1; i++) {
 		A[i] = malloc (sizeof (struct aseq));
 		A[i]->added = calloc (graph->V, sizeof(int));
-		A[i]->seqsize = 0;
-		for (int j = 0; j < A[i-1]->seqsize; j++) {
+		A[i]->setlength = 0;
+		for (int j = 0; j < A[i-1]->setlength; j++) {
 			// Generates 0.0 - 1.0
 			double rnd = (double)rand()/RAND_MAX;
 			// Check random number is <= n^{-1/k}
 			if (rnd <= pow (graph->V, -1.0/(double)k)) {
 				int v_id = A[i-1]->nodes[j].v_id;
-				tmp[A[i]->seqsize] = v_id;
+				tmp[A[i]->setlength] = v_id;
 				A[i]->added[v_id] = 1;
-				A[i]->seqsize += 1;
+				A[i]->setlength += 1;
 			}
 		}
 
-		if (A[i]->seqsize == 0) {
+		if (A[i]->setlength == 0) {
 			FREE (tmp);
 			for (int j = 0; j < i; j++) {
 				FREE (A[j]->nodes);
@@ -400,8 +400,8 @@ bool create_aseqs (struct aseq **A, int k, struct graph *graph, struct node *nod
 			return false;
 		}
 
-		A[i]->nodes = malloc (A[i]->seqsize * sizeof(struct node));
-		for (int l = 0; l < A[i]->seqsize; l++) {
+		A[i]->nodes = malloc (A[i]->setlength * sizeof(struct node));
+		for (int l = 0; l < A[i]->setlength; l++) {
 			memcpy (&A[i]->nodes[l], &nodes[tmp[l]], sizeof (struct node));
 		}
 	}
@@ -488,10 +488,9 @@ struct prepro *prepro (struct graph *graph, int k)
 		write_graph->V += 1;
 		n = write_graph->V;
 
-		// compute d(A_i, v), running dijkstra once for each i
+		// running dijkstra once for each i
 		dist[i] = dijkstra_alg_tz (write_graph, heap);
-
-		// Finding the pivot elements
+		// compute d(A_i, v), finding the pivot elements
 		pivot_nodes[i] = find_pivot (pivot_nodes[i+1], dist[i], n);
 		// Copy the pivot nodes to the piv of bunches
 		for (unsigned int j = 0; j < (n-1); j++) {

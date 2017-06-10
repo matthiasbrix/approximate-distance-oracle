@@ -12,7 +12,7 @@ extern int offset;
 struct aseq {
   struct node *nodes;
   int *added; // mark whether node in A_i or not
-  int seqsize;
+  int setlength;
 };
 
 struct cluster {

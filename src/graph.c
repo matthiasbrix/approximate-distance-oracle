@@ -1,6 +1,26 @@
 #include "graph.h"
 
 /**
+ * diff - measuring cpu time
+ * @start: start time
+ * @end: end time
+ * Computes the cpu time spent on some code. This measurement
+ * is far more accurate than clock_t
+ */
+struct timespec diff(struct timespec start, struct timespec end)
+{
+	struct timespec temp;
+	if ((end.tv_nsec-start.tv_nsec)<0) {
+		temp.tv_sec = end.tv_sec-start.tv_sec-1;
+		temp.tv_nsec = BILLION+end.tv_nsec-start.tv_nsec;
+	} else {
+		temp.tv_sec = end.tv_sec-start.tv_sec;
+		temp.tv_nsec = end.tv_nsec-start.tv_nsec;
+	}
+	return temp;
+}
+
+/**
  * init_graph - initialising a graph structure
  * @n: number of vertices to be allocated
  * Running time: O(n).
@@ -161,123 +181,168 @@ struct node *dijkstra_alg_tz (struct graph *graph, struct heap *Q)
  * We start the execution by initialising two heaps, with u and v as single vertices.
  * Then we execute one search at a time.
  */
-int bidirectional_dijkstra (struct graph *gf, int u, int v)
+struct dijkstra_res *bidirectional_dijkstra (struct graph *gf, int s, int t)
 {
 	// min-prioty queue for forward search
-	struct heap *Q_1 = malloc (sizeof (struct heap));
-	Q_1->nodes = malloc (gf->V * sizeof(struct node*));
+	struct heap *Q_f = malloc (sizeof (struct heap));
+	Q_f->nodes = malloc (gf->V * sizeof(struct node*));
 	// min-prioty queue for backwards search
-	struct heap *Q_2 = malloc (sizeof (struct heap));
-	Q_2->nodes = malloc (gf->V * sizeof(struct node*));
+	struct heap *Q_b = malloc (sizeof (struct heap));
+	Q_b->nodes = malloc (gf->V * sizeof(struct node*));
 	// Auxiliary arrays
-	int *in_Q1_heap = calloc (gf->V, sizeof (int));
-	int *in_Q2_heap = calloc (gf->V, sizeof (int));
-	int *extracted_1 = calloc (gf->V, sizeof(int));
-	int *extracted_2 = calloc (gf->V, sizeof(int));
-	int rootqi;
-	int rootqg;
+	int *in_Qf_heap = calloc (gf->V, sizeof (int));
+	int *in_Qb_heap = calloc (gf->V, sizeof (int));
+	int *extracted_qf = calloc (gf->V, sizeof(int));
+	int *extracted_qb = calloc (gf->V, sizeof(int));
+	int rootqf, rootqb;
+	struct timespec start, end;
+
+	struct dijkstra_res *res = malloc (sizeof (struct dijkstra_res));
 
 	// For forward search
-	struct node *S_1 = malloc (gf->V * sizeof (struct node));
-	memset (S_1, 0, gf->V * sizeof (struct node));
+	struct node *S_f = malloc (gf->V * sizeof (struct node));
+	memset (S_f, 0, gf->V * sizeof (struct node));
 	// For backwards search
-	struct node *S_2 = malloc (gf->V * sizeof (struct node));
-	memset (S_2, 0, gf->V * sizeof (struct node));
+	struct node *S_b = malloc (gf->V * sizeof (struct node));
+	memset (S_b, 0, gf->V * sizeof (struct node));
 
-	if (Q_1 == NULL || Q_2 == NULL || in_Q1_heap == NULL || in_Q2_heap == NULL ||
-		extracted_1 == NULL || extracted_2 == NULL || S_1 == NULL || S_2 == NULL) {
+	if (Q_f == NULL || Q_b == NULL || in_Qf_heap == NULL || in_Qf_heap == NULL ||
+		extracted_qf == NULL || extracted_qb == NULL || S_f == NULL || S_b == NULL) {
 		perror ("Pointer error in bidirectional dijkstra.\n");
-		return EXIT_FAILURE;
+		exit (-1);
 	}
 
-	Q_1->heap_size = 0;
-	Q_2->heap_size = 0;
+	res->avg_min_heap_insert_time = 0.0;
+	res->avg_extract_min_time = 0.0;
+	res->avg_decrease_key_time = 0.0;
+	res->num_decrease_key = 0;
+	res->num_heap_insert = 0;
+	res->visited_nodes = 0;
+	res->visited_edges = 0;
+	Q_f->heap_size = 0;
+	Q_b->heap_size = 0;
 	// Copy of graph for backwards search
-	struct graph *gb = copy_graph_struct (gf, Q_2);
-	min_heap_insert (Q_1, u, 0, gf);
-	min_heap_insert (Q_2, v, 0, gb);
+	struct graph *gb = copy_graph_struct (gf, Q_b);
+	min_heap_insert (Q_f, s, 0, gf);
+	min_heap_insert (Q_b, t, 0, gb);
 	int sp_estimate = (int) INFINITY;
 
-	while (Q_1->heap_size != 0 && Q_2->heap_size != 0) {
+	while (Q_f->heap_size != 0 && Q_b->heap_size != 0) {
 
-		rootqi = (minimum (Q_1))->sp_est;
-		rootqg = (minimum (Q_2))->sp_est;
+		rootqf = (minimum (Q_f))->sp_est;
+		rootqb = (minimum (Q_b))->sp_est;
 
-		if (rootqi < rootqg) {
+		if (rootqf < rootqb) {
 			// Forward search begins here
-			struct node *u = extract_min (Q_1);
-			memcpy (&S_1[u->v_id], u, sizeof(struct node));
+			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+			struct node *u = extract_min (Q_f);
+			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+			res->avg_extract_min_time += diff(start,end).tv_nsec;
+			memcpy (&S_f[u->v_id], u, sizeof(struct node));
+			res->visited_nodes += 1;
 			for (struct adjlistnode *s = gf->adjlists[u->v_id].head;
 				 s != NULL; s = s->next) {
 				struct node *v = gf->adjlists[s->v_id].nd;
 				int sp_est = u->sp_est + s->weight;
-				if (!extracted_1[s->v_id] && !in_Q1_heap[s->v_id]) {
-					min_heap_insert (Q_1, s->v_id, sp_est, gf);
+				res->visited_edges += 1;
+				if (!extracted_qf[s->v_id] && !in_Qf_heap[s->v_id]) {
+					clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+					min_heap_insert (Q_f, s->v_id, sp_est, gf);
+					clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+					res->avg_min_heap_insert_time += diff(start,end).tv_nsec;
 					gf->adjlists[s->v_id].nd->pi = u;
-					in_Q1_heap[s->v_id] = sp_est;
-				} else if (v != NULL && (v->sp_est > sp_est) && !extracted_1[s->v_id]) {
-					decrease_key (Q_1, v, u, sp_est);
-					in_Q1_heap[s->v_id] = sp_est;
+					in_Qf_heap[s->v_id] = sp_est;
+					res->num_heap_insert += 1;
+				} else if (v != NULL && (v->sp_est > sp_est) && !extracted_qf[s->v_id]) {
+					clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+					decrease_key (Q_f, v, u, sp_est);
+					clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+					res->avg_decrease_key_time += diff(start,end).tv_nsec;
+					in_Qf_heap[s->v_id] = sp_est;
+					res->num_decrease_key += 1;
 				}
 			}
-			extracted_1[u->v_id] = 1;
+			extracted_qf[u->v_id] = 1;
 			// u intersects in S_1 and S_2
-			if (extracted_1[u->v_id] && extracted_2[u->v_id]) {
-				if (sp_estimate >= S_1[u->v_id].sp_est + S_2[u->v_id].sp_est) {
-					sp_estimate = S_1[u->v_id].sp_est + S_2[u->v_id].sp_est;
+			if (extracted_qf[u->v_id] && extracted_qb[u->v_id]) {
+				if (sp_estimate >= S_f[u->v_id].sp_est + S_b[u->v_id].sp_est) {
+					sp_estimate = S_f[u->v_id].sp_est + S_b[u->v_id].sp_est;
 				} else {
-					return sp_estimate;
+					res->dist = sp_estimate;
+					res->S_f = S_f;
+					res->S_b = S_b;
+					return res;
 				}
 				// u intersects in Q_1 and Q_2
-			} else if (in_Q1_heap[u->v_id] && in_Q2_heap[u->v_id] &&
-				sp_estimate >= in_Q1_heap[u->v_id] + in_Q2_heap[u->v_id]) {
-				sp_estimate = in_Q1_heap[u->v_id] + in_Q2_heap[u->v_id];
+			} else if (in_Qf_heap[u->v_id] && in_Qb_heap[u->v_id] &&
+				sp_estimate >= in_Qf_heap[u->v_id] + in_Qb_heap[u->v_id]) {
+				sp_estimate = in_Qf_heap[u->v_id] + in_Qb_heap[u->v_id];
 			}
 		} else {
 			// Backwards search begins here
-			struct node *u = extract_min (Q_2);
-			memcpy (&S_2[u->v_id], u, sizeof(struct node));
+			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+			struct node *u = extract_min (Q_b);
+			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+			res->avg_extract_min_time += diff(start,end).tv_nsec;
+			memcpy (&S_b[u->v_id], u, sizeof(struct node));
+			res->visited_nodes += 1;
 			for (struct adjlistnode *s = gb->adjlists[u->v_id].head;
 				 s != NULL; s = s->next) {
 				struct node *v = gb->adjlists[s->v_id].nd;
 				int sp_est = u->sp_est + s->weight;
-				if (!extracted_2[s->v_id] && !in_Q2_heap[s->v_id]) {
-					min_heap_insert (Q_2, s->v_id, sp_est, gb);
+				res->visited_edges += 1;
+				if (!extracted_qb[s->v_id] && !in_Qb_heap[s->v_id]) {
+					clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+					min_heap_insert (Q_b, s->v_id, sp_est, gb);
+					clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+					res->avg_min_heap_insert_time += diff(start,end).tv_nsec;
 					gb->adjlists[s->v_id].nd->pi = u;
-					in_Q2_heap[s->v_id] = sp_est;
-				} else if (v != NULL && (v->sp_est > sp_est) && !extracted_2[s->v_id]) {
-					decrease_key (Q_2, v, u, sp_est);
-					in_Q2_heap[s->v_id] = sp_est;
+					in_Qb_heap[s->v_id] = sp_est;
+					res->num_heap_insert += 1;
+				} else if (v != NULL && (v->sp_est > sp_est) && !extracted_qb[s->v_id]) {
+					clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+					decrease_key (Q_b, v, u, sp_est);
+					clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+					res->avg_decrease_key_time += diff(start,end).tv_nsec;
+					in_Qb_heap[s->v_id] = sp_est;
+					res->num_decrease_key += 1;
 				}
 			}
-			extracted_2[u->v_id] = 1;
+			extracted_qb[u->v_id] = 1;
 			// u intersects in S_1 and S_2
-			if (extracted_1[u->v_id] && extracted_2[u->v_id]) {
-				if (sp_estimate >= S_1[u->v_id].sp_est + S_2[u->v_id].sp_est) {
-					sp_estimate = S_1[u->v_id].sp_est + S_2[u->v_id].sp_est;
+			if (extracted_qf[u->v_id] && extracted_qb[u->v_id]) {
+				if (sp_estimate >= S_f[u->v_id].sp_est + S_b[u->v_id].sp_est) {
+					sp_estimate = S_f[u->v_id].sp_est + S_b[u->v_id].sp_est;
 				} else {
-					return sp_estimate;
+					res->dist = sp_estimate;
+					res->S_f = S_f;
+					res->S_b = S_b;
+					return res;
 				}
 				// u intersects in Q_1 and Q_2
-			} else if (in_Q1_heap[u->v_id] && in_Q2_heap[u->v_id] &&
-				sp_estimate >= in_Q1_heap[u->v_id] + in_Q2_heap[u->v_id]) {
-				sp_estimate = in_Q1_heap[u->v_id] + in_Q2_heap[u->v_id];
+			} else if (in_Qf_heap[u->v_id] && in_Qb_heap[u->v_id] &&
+				sp_estimate >= in_Qf_heap[u->v_id] + in_Qb_heap[u->v_id]) {
+				sp_estimate = in_Qf_heap[u->v_id] + in_Qb_heap[u->v_id];
 			}
 		}
 	}
 
+	res->dist = sp_estimate;
+	res->S_f = S_f;
+	res->S_b = S_b;
+
 	free_graph (gf);
 	free_graph (gb);
-	free_heap (Q_1);
-	free_heap (Q_2);
-	FREE (S_1);
-	FREE (S_2);
-	FREE (in_Q1_heap);
-	FREE (in_Q2_heap);
-	FREE (extracted_1);
-	FREE (extracted_2);
+	free_heap (Q_f);
+	free_heap (Q_b);
+	FREE (S_f);
+	FREE (S_b);
+	FREE (in_Qf_heap);
+	FREE (in_Qb_heap);
+	FREE (extracted_qf);
+	FREE (extracted_qb);
 
-	return sp_estimate;
+	return res;
 }
 
 /**
@@ -313,31 +378,99 @@ struct heap *initialise_single_source (struct graph *graph, int s)
 }
 
 /**
+ * dijkstra_opt_alg - An optimised variant of Dijkstra's original algorithm
+ * @graph: graph
+ * @s: source vertex id
+ * @t: target vertex id
+ * Running time: O((m + n) lg n)
+ * Searching all shortest-paths from the single source s, but halts as soon
+ * as we add the target vertex t to the closed set S
+ */
+struct dijkstra_res *dijkstra_opt_alg (struct graph *graph, int s, int t)
+{
+	struct dijkstra_res *res = malloc (sizeof (struct dijkstra_res));
+	res->avg_extract_min_time = 0.0;
+	res->avg_decrease_key_time = 0.0;
+	res->num_decrease_key = 0;
+	res->visited_nodes = 0;
+	res->visited_edges = 0;
+	struct timespec start, end;
+	struct heap *Q = initialise_single_source (graph, s);
+	struct node *S = malloc (Q->heap_size * sizeof (struct node));
+	while (Q->heap_size != 0) {
+		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+		struct node *u = extract_min (Q);
+		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+		res->avg_extract_min_time += diff(start,end).tv_nsec;
+		memcpy (&S[u->v_id], u, sizeof (struct node));
+		res->visited_nodes += 1;
+		for (struct adjlistnode *s = graph->adjlists[u->v_id].head;
+			 s != NULL; s = s->next) {
+			struct node *v = graph->adjlists[s->v_id].nd;
+			int sp_est = u->sp_est + s->weight;
+			res->visited_edges += 1;
+			if ((v != NULL) && (v->sp_est > sp_est)) {
+				clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+				decrease_key (Q, v, u, sp_est);
+				clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+				res->avg_decrease_key_time += diff(start,end).tv_nsec;
+				res->num_decrease_key += 1;
+			}
+		}
+		graph->adjlists[u->v_id].nd = NULL;
+		if (u->v_id == t) {
+			free_heap (Q);
+			res->S_f = S;
+			return res;
+		}
+	}
+	free_heap (Q);
+	return NULL;
+}
+
+/**
  * dijkstra_alg - Dijkstra's original algorithm
  * @graph: graph
  * @s: source vertex id
  * Running time: O((m + n) lg n)
- * Searching all shortest-paths from a single source, that is, s
+ * Searching all shortest-paths from the single source s
  */
-struct node *dijkstra_alg (struct graph *graph, int s)
+struct dijkstra_res *dijkstra_alg (struct graph *graph, int s)
 {
+	struct dijkstra_res *res = malloc (sizeof (struct dijkstra_res));
+	res->avg_extract_min_time = 0.0;
+	res->avg_decrease_key_time = 0.0;
+	res->num_decrease_key = 0;
+	res->visited_nodes = 0;
+	res->visited_edges = 0;
+	struct timespec start, end;
 	struct heap *Q = initialise_single_source (graph, s);
 	struct node *S = malloc (Q->heap_size * sizeof (struct node));
 	while (Q->heap_size != 0) {
+		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
 		struct node *u = extract_min (Q);
+		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+		res->avg_extract_min_time += diff(start,end).tv_nsec;
 		memcpy (&S[u->v_id], u, sizeof (struct node));
+		res->visited_nodes += 1;
 		for (struct adjlistnode *s = graph->adjlists[u->v_id].head;
 			 s != NULL; s = s->next) {
 			struct node *v = graph->adjlists[s->v_id].nd;
-			if ((v != NULL) && (v->sp_est > u->sp_est + s->weight)) {
-				int sp_est = u->sp_est + s->weight;
+			int sp_est = u->sp_est + s->weight;
+			res->visited_edges += 1;
+			if ((v != NULL) && (v->sp_est > sp_est)) {
+				clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
 				decrease_key (Q, v, u, sp_est);
+				clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+				res->avg_decrease_key_time += diff(start,end).tv_nsec;
+				res->num_decrease_key += 1;
 			}
 		}
 		graph->adjlists[u->v_id].nd = NULL;
 	}
 	free_heap (Q);
-	return S;
+	res->S_f = S;
+	return res;
 }
 
 /**
@@ -395,7 +528,8 @@ void pp_nodes (struct node *S, int i)
 		if (S[j].pi == NULL) {
 			printf ("vertex: %d v.d: %d v.pi NULL\n", S[j].v_id+offset, S[j].sp_est);
 		} else {
-			printf ("vertex: %d v.d: %d v.pi %d\n", S[j].v_id+offset, S[j].sp_est, S[j].pi->v_id+offset);
+			printf ("vertex: %d v.d: %d v.pi %d\n", S[j].v_id+offset,
+					S[j].sp_est, S[j].pi->v_id+offset);
 		}
 	}
 

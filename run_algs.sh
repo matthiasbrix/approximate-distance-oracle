@@ -60,6 +60,7 @@ elif [[ -r $INPUTFILE && $KINT -gt 0 && $UINT -gt 0 && $VINT -gt 0 ]]; then
     name=$i-$FILENAME.txt
     ./bin/$EXE "tz" $INPUTFILE $OUTPUTFILE $KINT $UINT $VINT > $name
     ./bin/$EXE "dj" $INPUTFILE $OUTPUTFILE $KINT $UINT $VINT >> $name
+	./bin/$EXE "djopt" $INPUTFILE $OUTPUTFILE $KINT $UINT $VINT >> $name
 	./bin/$EXE "bdj" $INPUTFILE $OUTPUTFILE $KINT $UINT $VINT >> $name
 else
     echo "Something went wrong!"

@@ -3,7 +3,7 @@
 #define MIN_REQUIRED 6
 #define MS 1E6
 #define QUERY_TIMES 10
-#define DIST_TIMES 100
+#define DIST_TIMES 1000
 /*
   indicates whether the algorithms works with 1 or 0 indexed data.
   If e.g. 1-indexed, the offset is 1 such that the backend (so how the data
@@ -18,7 +18,7 @@ int offset = 0;
  * to be called with flag --help when executing the program
  */
 void help () {
-	printf ("To run, required arguments are as follows:\n");
+  printf ("To run, required arguments are as follows:\n");
 	printf ("./main <algorithm> <inputfile> <outputfile> <k integer> <u integer> <v integer>\n");
 	printf ("\nPossible input for each flag:\n\n");
 	printf ("<algorithm>: dj, djopt, tz, bdj\n");

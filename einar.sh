@@ -31,3 +31,11 @@
 ./run_algs.sh -i tests/USAFULL.txt -o result.csv -k 180 -u 1733111 -v 12512623
 ./run_algs.sh -i tests/USAFULL.txt -o result.csv -k 190 -u 1733111 -v 12512623
 ./run_algs.sh -i tests/USAFULL.txt -o result.csv -k 200 -u 1733111 -v 12512623
+./run_algs.sh -i tests/USAFULL.txt -o result.csv -k 300 -u 1733111 -v 12512623
+./run_algs.sh -i tests/USAFULL.txt -o result.csv -k 400 -u 1733111 -v 12512623
+./run_algs.sh -i tests/USAFULL.txt -o result.csv -k 500 -u 1733111 -v 12512623
+./run_algs.sh -i tests/USAFULL.txt -o result.csv -k 600 -u 1733111 -v 12512623
+./run_algs.sh -i tests/USAFULL.txt -o result.csv -k 700 -u 1733111 -v 12512623
+./run_algs.sh -i tests/USAFULL.txt -o result.csv -k 800 -u 1733111 -v 12512623
+./run_algs.sh -i tests/USAFULL.txt -o result.csv -k 900 -u 1733111 -v 12512623
+./run_algs.sh -i tests/USAFULL.txt -o result.csv -k 1000 -u 1733111 -v 12512623

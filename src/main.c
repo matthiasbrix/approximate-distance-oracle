@@ -3,6 +3,7 @@
 #define MIN_REQUIRED 6
 #define MS 1E6
 #define QUERY_TIMES 10
+#define DIST_TIMES 100
 /*
   indicates whether the algorithms works with 1 or 0 indexed data.
   If e.g. 1-indexed, the offset is 1 such that the backend (so how the data
@@ -59,8 +60,6 @@ struct dijkstra_res *run_bdj (struct graph *graph, int u, int v, int n, int m)
 			bdj->num_heap_insert / MS;
 	}
 	bdj->memory_consump = get_vm_peak ();
-	bdj->num_heap_insert = 0;
-	bdj->avg_min_heap_insert_time = 0.0;
 	bdj->avg_extract_min_time = (avg_ext / (double)QUERY_TIMES);
 	bdj->avg_decrease_key_time = (avg_dec / (double)QUERY_TIMES);
 	bdj->avg_min_heap_insert_time = (avg_ins / (double)QUERY_TIMES);
@@ -191,9 +190,9 @@ struct dijkstra_res *run_opt_dijkstra (struct graph *graph, int u, int v, int n,
 			dijkstra->num_decrease_key, dijkstra->avg_decrease_key_time);
 	printf ("%d min-heap-insert operations. Avg time pr. operation: %.1f ms\n",
 			dijkstra->num_heap_insert, dijkstra->avg_min_heap_insert_time);
-	printf ("Time spent on running Dijkstra (%d, %d) = %f sec\n",
+	printf ("Time spent on running optimised Dijkstra (%d, %d) = %f sec\n",
 			u, v, dijkstra->dist_time);
-	printf ("Memory usage of Dijkstra = %d KB\n", dijkstra->memory_consump);
+	printf ("Memory usage of optimised Dijkstra = %d KB\n", dijkstra->memory_consump);
 
 	return dijkstra;
 }
@@ -228,17 +227,17 @@ struct tz_res *run_tz (struct graph *graph, int k, int u, int v, int n, int m)
 	tz->prepro_memory_consump = get_vm_peak();
 	tz->k = k;
 	printf ("Time spent on prepro k=%d Thorup-Zwick: %f\n", tz->k, tz->prepro_time);
-	printf ("n=%d, m=%d", n, m);
+	printf ("vertices n=%d, edges m=%d\n", n, m);
 	printf ("Memory usage of prepro = %d KB\n", tz->prepro_memory_consump);
 	cpu_time_spent = 0.0;
-	for (int i = 0; i < QUERY_TIMES; i++) {
+	for (int i = 0; i < DIST_TIMES; i++) {
 		begin = clock();
 		distances += dist (&pp->nodes[u-offset], &pp->nodes[v-offset], pp->bunchlist);
 		end = clock();
 		cpu_time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
 	}
-	tz->dist = (distances / QUERY_TIMES);
-	tz->dist_time = (cpu_time_spent / QUERY_TIMES);
+	tz->dist = (distances / DIST_TIMES);
+	tz->dist_time = (cpu_time_spent / DIST_TIMES);
 	tz->dist_memory_consump = pp->bunchlist->bunch_size / 1000;
 	printf ("Result of Thorup-Zwick dist(%d, %d) = %d\n", u, v, tz->dist);
 	printf ("Time spent on dist Thorup-Zwick: %f sec\n", tz->dist_time);
@@ -249,11 +248,7 @@ struct tz_res *run_tz (struct graph *graph, int k, int u, int v, int n, int m)
 
 int main (int argc, char *argv[])
 {
-	if (argc == 1) {
-		/* hardcoded_tests (); */
-		return EXIT_SUCCESS;
-	}
-	if (strcmp ("--help", argv[1]) == 0) {
+	if (argc == 2 && strcmp ("--help", argv[1]) == 0) {
 		help ();
 	} else if ((argc-1) < MIN_REQUIRED || (((argc-1) % MIN_REQUIRED) != 0)) {
 		printf ("No input and output arguments or input/output does not match!\n");
@@ -270,7 +265,7 @@ int main (int argc, char *argv[])
 			struct graph_data *gd = read_vertices_and_edges (fname_read);
 			if (u > gd->n || v > gd->n) {
 				printf ("Source vertex u or/and target vertex v is/are invalid\n");
-				printf ("Please consider a valid vertex that is < n\n\n");
+				printf ("Please consider a valid vertex that is <= n\n\n");
 				help ();
 				return EXIT_FAILURE;
 			}

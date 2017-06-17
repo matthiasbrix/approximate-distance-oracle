@@ -234,9 +234,18 @@ void free_heap (struct heap *heap)
 void pp_heap (struct heap *hp)
 {
 	printf ("\nPRINT HEAP NODES\n");
-	printf ("SPEST ID INDEX\n");
+	printf ("SPEST ID INDEX PRED.\n");
 	for (int i = 0; i < hp->heap_size; i++) {
-		printf ("%d %d %d \n", hp->nodes[i]->sp_est, hp->nodes[i]->v_id+offset, hp->nodes[i]->index);
+		if (hp->nodes[i]->pi != NULL) {
+			printf ("%d     %d    %d    %d\n", hp->nodes[i]->sp_est,
+					hp->nodes[i]->v_id+offset, hp->nodes[i]->index,
+					hp->nodes[i]->pi->v_id+offset);
+		} else {
+			printf ("%d    %d    %d    %s\n", hp->nodes[i]->sp_est,
+					hp->nodes[i]->v_id+offset, hp->nodes[i]->index,
+					"NULL");
+		}
+
 	}
 	printf ("\n");
 	return;

@@ -3,7 +3,7 @@
 #define MIN_REQUIRED 6
 #define MS 1E6
 #define QUERY_TIMES 10
-#define DIST_TIMES 1000
+#define DIST_TIMES 100
 /*
   indicates whether the algorithms works with 1 or 0 indexed data.
   If e.g. 1-indexed, the offset is 1 such that the backend (so how the data
@@ -235,10 +235,11 @@ struct tz_res *run_tz (struct graph *graph, int k, int u, int v, int n, int m)
 		distances += dist (&pp->nodes[u-offset], &pp->nodes[v-offset], pp->bunchlist);
 		end = clock();
 		cpu_time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
+		tz->dist_memory_consump = pp->bunchlist->bunch_size / 1000;
 	}
 	tz->dist = (distances / DIST_TIMES);
 	tz->dist_time = (cpu_time_spent / DIST_TIMES);
-	tz->dist_memory_consump = pp->bunchlist->bunch_size / 1000;
+	tz->dist_memory_consump = (pp->bunchlist->bunch_size / DIST_TIMES);
 	printf ("Result of Thorup-Zwick dist(%d, %d) = %d\n", u, v, tz->dist);
 	printf ("Time spent on dist Thorup-Zwick: %f sec\n", tz->dist_time);
 	printf ("Memory usage of dist (bunch size) = %d KB\n", tz->dist_memory_consump);

@@ -7,8 +7,9 @@ OUTPUTFILE=''
 KINT=-1
 UINT=-1
 VINT=-1
+TIMES=-1
 
-while getopts i:o:k:u:v:d: option
+while getopts i:o:k:u:v:d:t: option
 do
  case "${option}"
  in
@@ -18,6 +19,7 @@ do
      u) UINT=${OPTARG};;
      v) VINT=${OPTARG};;
      d) DEBUG=${OPTARG};;
+     t) TIMES=${OPTARG};;
  esac
 done
 
@@ -37,7 +39,6 @@ NEWINPUTFILE=${INPUTFILE:i+1}
 # check if folder benchmarks exists
 if [ ! -d "benchmarks" ]; then
 	mkdir benchmarks
-
 fi
 
 name=""
@@ -58,10 +59,14 @@ elif [[ -r $INPUTFILE && $KINT -gt 0 && $UINT -gt 0 && $VINT -gt 0 ]]; then
         let i++
     done
     name=$i-$FILENAME.txt
-    ./bin/$EXE "tz" $INPUTFILE $OUTPUTFILE $KINT $UINT $VINT > $name
+    touch $name
+    for (( j=0; j<$TIMES; j++ )); do
+		echo "$j"
+        ./bin/$EXE "tz" $INPUTFILE $OUTPUTFILE $KINT $UINT $VINT >> $name
+    done
     ./bin/$EXE "dj" $INPUTFILE $OUTPUTFILE $KINT $UINT $VINT >> $name
-	./bin/$EXE "djopt" $INPUTFILE $OUTPUTFILE $KINT $UINT $VINT >> $name
-	./bin/$EXE "bdj" $INPUTFILE $OUTPUTFILE $KINT $UINT $VINT >> $name
+    ./bin/$EXE "djopt" $INPUTFILE $OUTPUTFILE $KINT $UINT $VINT >> $name
+    ./bin/$EXE "bdj" $INPUTFILE $OUTPUTFILE $KINT $UINT $VINT >> $name
 else
     echo "Something went wrong!"
 fi

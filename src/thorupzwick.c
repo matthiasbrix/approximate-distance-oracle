@@ -178,7 +178,7 @@ struct cluster *dijkstra_cluster_tz (struct graph *graph, struct node *w,
 
 	if (Q == NULL || S == NULL || in_heap == NULL
 		|| extracted == NULL || Q->nodes == NULL || cluster == NULL) {
-		perror ("Failed to allocate memory for in_heap, relaxed, S, Q, Q->nodes or cluster\n");
+		perror ("Failed to allocate memory for in_heap, extracted, S, Q, Q->nodes or cluster\n");
 		exit (-1);
 	}
 

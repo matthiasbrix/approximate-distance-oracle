@@ -1,9 +1,5 @@
 #include "main.h"
 
-#define MIN_REQUIRED 6
-#define MS 1E6
-#define QUERY_TIMES 10
-#define DIST_TIMES 100
 /*
   indicates whether the algorithms works with 1 or 0 indexed data.
   If e.g. 1-indexed, the offset is 1 such that the backend (so how the data
@@ -42,8 +38,8 @@ void help () {
 struct dijkstra_res *run_bdj (struct graph *graph, int u, int v, int n, int m)
 {
 	struct dijkstra_res *bdj;
-	double cpu_time_spent = 0.0, avg_dec = 0.0, avg_ext = 0.0, avg_ins = 0.0;
-	for (int i = 0; i < QUERY_TIMES; i++) {
+	double cpu_time_spent = 0.0, avg_ins = 0.0, avg_dec = 0.0, avg_ext = 0.0;
+	for (int i = 0; i < DIJKSTRA_TIMES; i++) {
 		clock_t begin = clock();
 		bdj = bidirectional_dijkstra (graph, u-offset, v-offset);
 		clock_t end = clock();
@@ -53,17 +49,17 @@ struct dijkstra_res *run_bdj (struct graph *graph, int u, int v, int n, int m)
 		}
 		cpu_time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
 		avg_ext += bdj->avg_extract_min_time /
-			bdj->visited_nodes / MS;
+			bdj->num_extract_min / MS;
 		avg_dec += bdj->avg_decrease_key_time /
 			bdj->num_decrease_key / MS;
 		avg_ins += bdj->avg_min_heap_insert_time = bdj->avg_min_heap_insert_time /
-			bdj->num_heap_insert / MS;
+			bdj->visited_nodes / MS;
 	}
 	bdj->memory_consump = get_vm_peak ();
-	bdj->avg_extract_min_time = (avg_ext / (double)QUERY_TIMES);
-	bdj->avg_decrease_key_time = (avg_dec / (double)QUERY_TIMES);
-	bdj->avg_min_heap_insert_time = (avg_ins / (double)QUERY_TIMES);
-	bdj->dist_time = (cpu_time_spent / QUERY_TIMES);
+	bdj->avg_extract_min_time = (avg_ext / (double)DIJKSTRA_TIMES);
+	bdj->avg_decrease_key_time = (avg_dec / (double)DIJKSTRA_TIMES);
+	bdj->avg_min_heap_insert_time = (avg_ins / (double)DIJKSTRA_TIMES);
+	bdj->dist_time = (cpu_time_spent / DIJKSTRA_TIMES);
 	bdj->visited_nodes_ratio = (double)bdj->visited_nodes/(double)n;
 	bdj->visited_edges_ratio = (double)bdj->visited_edges/(double)m;
 
@@ -73,11 +69,11 @@ struct dijkstra_res *run_bdj (struct graph *graph, int u, int v, int n, int m)
 			bdj->visited_nodes_ratio,
 			bdj->visited_edges_ratio);
 	printf ("%d extract-min operations. Avg time pr. operation: %.10f ms\n",
-			bdj->visited_nodes, bdj->avg_extract_min_time);
+			bdj->num_extract_min, bdj->avg_extract_min_time);
 	printf ("%d decrease-key operations. Avg time pr. operation: %.10f ms\n",
 			bdj->num_decrease_key, bdj->avg_decrease_key_time);
 	printf ("%d min-heap-insert operations. Avg time pr. operation: %.10f ms\n",
-			bdj->num_heap_insert, bdj->avg_min_heap_insert_time);
+			bdj->visited_nodes, bdj->avg_min_heap_insert_time);
 	printf ("Time spent on running Bidirectional Dijkstra (%d, %d) = %f sec\n", u, v, bdj->dist_time);
 	printf ("Memory usage of Bidirectional Dijkstra = %d KB\n", bdj->memory_consump);
 
@@ -97,7 +93,7 @@ struct dijkstra_res *run_dijkstra (struct graph *graph, int u, int v, int n, int
 {
 	struct dijkstra_res *dijkstra;
 	double cpu_time_spent = 0.0, avg_dec = 0.0, avg_ext = 0.0;
-	for (int i = 0; i < QUERY_TIMES; i++) {
+	for (int i = 0; i < DIJKSTRA_TIMES; i++) {
 		clock_t begin = clock();
 		dijkstra = dijkstra_alg (graph, u-offset);
 		clock_t end = clock();
@@ -112,11 +108,9 @@ struct dijkstra_res *run_dijkstra (struct graph *graph, int u, int v, int n, int
 			dijkstra->num_decrease_key / MS;
 	}
 	dijkstra->memory_consump = get_vm_peak ();
-	dijkstra->num_heap_insert = 0;
-	dijkstra->avg_min_heap_insert_time = 0.0;
-	dijkstra->avg_extract_min_time = (avg_ext / (double)QUERY_TIMES);
-	dijkstra->avg_decrease_key_time = (avg_dec / (double)QUERY_TIMES);
-	dijkstra->dist_time = (cpu_time_spent / QUERY_TIMES);
+	dijkstra->avg_extract_min_time = (avg_ext / (double)DIJKSTRA_TIMES);
+	dijkstra->avg_decrease_key_time = (avg_dec / (double)DIJKSTRA_TIMES);
+	dijkstra->dist_time = (cpu_time_spent / DIJKSTRA_TIMES);
 	dijkstra->visited_nodes_ratio = (double)dijkstra->visited_nodes/(double)n;
 	dijkstra->visited_edges_ratio = (double)dijkstra->visited_edges/(double)m;
 
@@ -129,11 +123,11 @@ struct dijkstra_res *run_dijkstra (struct graph *graph, int u, int v, int n, int
 			dijkstra->visited_nodes_ratio,
 			dijkstra->visited_edges_ratio);
 	printf ("%d extract-min operations. Avg time pr. operation: %.10f ms\n",
-			dijkstra->visited_nodes, dijkstra->avg_extract_min_time);
+			dijkstra->num_extract_min, dijkstra->avg_extract_min_time);
 	printf ("%d decrease-key operations. Avg time pr. operation: %.10f ms\n",
 			dijkstra->num_decrease_key, dijkstra->avg_decrease_key_time);
 	printf ("%d min-heap-insert operations. Avg time pr. operation: %.1f ms\n",
-			dijkstra->num_heap_insert, dijkstra->avg_min_heap_insert_time);
+			0, 0.0);
 	printf ("Time spent on running Dijkstra's algorithm (%d, %d) = %f sec\n",
 			u, v, dijkstra->dist_time);
 	printf ("Memory usage of Dijkstra's algorithm = %d KB\n", dijkstra->memory_consump);
@@ -153,27 +147,28 @@ struct dijkstra_res *run_dijkstra (struct graph *graph, int u, int v, int n, int
 struct dijkstra_res *run_opt_dijkstra (struct graph *graph, int u, int v, int n, int m)
 {
 	struct dijkstra_res *dijkstra;
-	double cpu_time_spent = 0.0, avg_dec = 0.0, avg_ext = 0.0;;
-	for (int i = 0; i < QUERY_TIMES; i++) {
+	double cpu_time_spent = 0.0, avg_ins = 0.0, avg_dec = 0.0, avg_ext = 0.0;
+	for (int i = 0; i < DIJKSTRA_TIMES; i++) {
 		clock_t begin = clock();
 		dijkstra = dijkstra_opt_alg (graph, u-offset, v-offset);
 		clock_t end = clock();
 		if (dijkstra == NULL) {
-			perror ("No path (u, v) in djkstra_opt_alg could be found\n");
+			perror ("No path (u, v) in dijkstra_opt_alg could be found\n");
 			exit (-1);
 		}
 		cpu_time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
-		avg_ext += dijkstra->avg_extract_min_time /
+		avg_ins += dijkstra->avg_min_heap_insert_time /
 			dijkstra->visited_nodes / MS;
+		avg_ext += dijkstra->avg_extract_min_time /
+			dijkstra->num_extract_min / MS;
 		avg_dec += dijkstra->avg_decrease_key_time /
 			dijkstra->num_decrease_key / MS;
 	}
 	dijkstra->memory_consump = get_vm_peak ();
-	dijkstra->num_heap_insert = 0;
-	dijkstra->avg_min_heap_insert_time = 0.0;
-	dijkstra->avg_extract_min_time = (avg_ext / (double)QUERY_TIMES);
-	dijkstra->avg_decrease_key_time = (avg_dec / (double)QUERY_TIMES);
-	dijkstra->dist_time = (cpu_time_spent / QUERY_TIMES);
+	dijkstra->avg_min_heap_insert_time = (avg_ins / (double)DIJKSTRA_TIMES);
+	dijkstra->avg_extract_min_time = (avg_ext / (double)DIJKSTRA_TIMES);
+	dijkstra->avg_decrease_key_time = (avg_dec / (double)DIJKSTRA_TIMES);
+	dijkstra->dist_time = (cpu_time_spent / DIJKSTRA_TIMES);
 	dijkstra->visited_nodes_ratio = (double)dijkstra->visited_nodes/(double)n;
 	dijkstra->visited_edges_ratio = (double)dijkstra->visited_edges/(double)m;
 
@@ -185,11 +180,11 @@ struct dijkstra_res *run_opt_dijkstra (struct graph *graph, int u, int v, int n,
 	printf ("Visiting ratio of vertices = %f, edges = %f\n",
 			dijkstra->visited_nodes_ratio, dijkstra->visited_edges_ratio);
 	printf ("%d extract-min operations. Avg time pr. operation: %.10f ms\n",
-			dijkstra->visited_nodes, dijkstra->avg_extract_min_time);
+			dijkstra->num_extract_min, dijkstra->avg_extract_min_time);
 	printf ("%d decrease-key operations. Avg time pr. operation: %.10f ms\n",
 			dijkstra->num_decrease_key, dijkstra->avg_decrease_key_time);
-	printf ("%d min-heap-insert operations. Avg time pr. operation: %.1f ms\n",
-			dijkstra->num_heap_insert, dijkstra->avg_min_heap_insert_time);
+	printf ("%d min-heap-insert operations. Avg time pr. operation: %.10f ms\n",
+			dijkstra->visited_nodes, dijkstra->avg_min_heap_insert_time);
 	printf ("Time spent on running optimised Dijkstra (%d, %d) = %f sec\n",
 			u, v, dijkstra->dist_time);
 	printf ("Memory usage of optimised Dijkstra = %d KB\n", dijkstra->memory_consump);
@@ -212,34 +207,26 @@ struct tz_res *run_tz (struct graph *graph, int k, int u, int v, int n, int m)
 	struct tz_res *tz = malloc (sizeof (struct tz_res));
 	struct prepro *pp = malloc (sizeof (struct prepro));
 	clock_t begin, end;
-	double cpu_time_spent = 0.0;
-	int distances = 0;
 
 	begin = clock();
 	pp->success = false;
 	while (!pp->success) {
-		pp = prepro (graph, k);
-		sleep (1);
+	  pp = prepro (graph, k);
+	  sleep (1);
 	}
 	end = clock();
-	cpu_time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-	tz->prepro_time = cpu_time_spent;
+	tz->prepro_time = (double)(end - begin) / CLOCKS_PER_SEC;
 	tz->prepro_memory_consump = get_vm_peak();
+	begin = clock();
+	tz->dist = dist (&pp->nodes[u-offset], &pp->nodes[v-offset], pp->bunchlist);
+	end = clock();
+	tz->dist_time = (double)(end - begin) / CLOCKS_PER_SEC;
+	tz->dist_memory_consump = pp->bunchlist->bunch_size / 1000;
 	tz->k = k;
+
 	printf ("Time spent on prepro k=%d Thorup-Zwick: %f\n", tz->k, tz->prepro_time);
 	printf ("vertices n=%d, edges m=%d\n", n, m);
 	printf ("Memory usage of prepro = %d KB\n", tz->prepro_memory_consump);
-	cpu_time_spent = 0.0;
-	for (int i = 0; i < DIST_TIMES; i++) {
-		begin = clock();
-		distances += dist (&pp->nodes[u-offset], &pp->nodes[v-offset], pp->bunchlist);
-		end = clock();
-		cpu_time_spent += (double)(end - begin) / CLOCKS_PER_SEC;
-		tz->dist_memory_consump = pp->bunchlist->bunch_size / 1000;
-	}
-	tz->dist = (distances / DIST_TIMES);
-	tz->dist_time = (cpu_time_spent / DIST_TIMES);
-	tz->dist_memory_consump = (pp->bunchlist->bunch_size / DIST_TIMES);
 	printf ("Result of Thorup-Zwick dist(%d, %d) = %d\n", u, v, tz->dist);
 	printf ("Time spent on dist Thorup-Zwick: %f sec\n", tz->dist_time);
 	printf ("Memory usage of dist (bunch size) = %d KB\n", tz->dist_memory_consump);

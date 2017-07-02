@@ -34,10 +34,10 @@ struct dijkstra_res {
   double avg_extract_min_time;
   double visited_nodes_ratio;
   double visited_edges_ratio;
-  int visited_nodes;
+  int visited_nodes; // also for min-heap-insert
   int visited_edges;
   int num_decrease_key;
-  int num_heap_insert;
+  int num_extract_min;
   int n;
   int m;
 };

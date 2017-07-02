@@ -1,12 +1,10 @@
 /x_times.sh
 /seg.sh
 /file_script.sh
-/dsjc500.1.col
-/dsjc500.9.col
-/test.c
 /hash.c
 /benchmarks
 /*.csv
+*.o
 /tests/USAEAST.txt
 /tests/USAWEST.txt
 /tests/USACENTRAL.txt

@@ -7,7 +7,7 @@
  * Computes the cpu time spent on some code. This measurement
  * is far more accurate than clock_t
  */
-struct timespec diff(struct timespec start, struct timespec end)
+struct timespec diff (struct timespec start, struct timespec end)
 {
 	struct timespec temp;
 	if ((end.tv_nsec-start.tv_nsec)<0) {
@@ -216,7 +216,7 @@ struct dijkstra_res *bidirectional_dijkstra (struct graph *gf, int s, int t)
 	res->avg_extract_min_time = 0.0;
 	res->avg_decrease_key_time = 0.0;
 	res->num_decrease_key = 0;
-	res->num_heap_insert = 0;
+	res->num_extract_min = 0;
 	res->visited_nodes = 0;
 	res->visited_edges = 0;
 	Q_f->heap_size = 0;
@@ -238,8 +238,8 @@ struct dijkstra_res *bidirectional_dijkstra (struct graph *gf, int s, int t)
 			struct node *u = extract_min (Q_f);
 			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
 			res->avg_extract_min_time += diff(start,end).tv_nsec;
+			res->num_extract_min += 1;
 			memcpy (&S_f[u->v_id], u, sizeof(struct node));
-			res->visited_nodes += 1;
 			for (struct adjlistnode *s = gf->adjlists[u->v_id].head;
 				 s != NULL; s = s->next) {
 				struct node *v = gf->adjlists[s->v_id].nd;
@@ -252,7 +252,7 @@ struct dijkstra_res *bidirectional_dijkstra (struct graph *gf, int s, int t)
 					res->avg_min_heap_insert_time += diff(start,end).tv_nsec;
 					gf->adjlists[s->v_id].nd->pi = u;
 					in_Qf_heap[s->v_id] = sp_est;
-					res->num_heap_insert += 1;
+					res->visited_nodes += 1;
 				} else if (v != NULL && (v->sp_est > sp_est) && !extracted_qf[s->v_id]) {
 					clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
 					decrease_key (Q_f, v, u, sp_est);
@@ -285,7 +285,7 @@ struct dijkstra_res *bidirectional_dijkstra (struct graph *gf, int s, int t)
 			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
 			res->avg_extract_min_time += diff(start,end).tv_nsec;
 			memcpy (&S_b[u->v_id], u, sizeof(struct node));
-			res->visited_nodes += 1;
+			res->num_extract_min += 1;
 			for (struct adjlistnode *s = gb->adjlists[u->v_id].head;
 				 s != NULL; s = s->next) {
 				struct node *v = gb->adjlists[s->v_id].nd;
@@ -298,7 +298,7 @@ struct dijkstra_res *bidirectional_dijkstra (struct graph *gf, int s, int t)
 					res->avg_min_heap_insert_time += diff(start,end).tv_nsec;
 					gb->adjlists[s->v_id].nd->pi = u;
 					in_Qb_heap[s->v_id] = sp_est;
-					res->num_heap_insert += 1;
+					res->visited_nodes += 1;
 				} else if (v != NULL && (v->sp_est > sp_est) && !extracted_qb[s->v_id]) {
 					clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
 					decrease_key (Q_b, v, u, sp_est);
@@ -389,32 +389,60 @@ struct heap *initialise_single_source (struct graph *graph, int s)
 struct dijkstra_res *dijkstra_opt_alg (struct graph *graph, int s, int t)
 {
 	struct dijkstra_res *res = malloc (sizeof (struct dijkstra_res));
+	int *in_heap = calloc (graph->V, sizeof(int));
+	int *extracted = calloc (graph->V, sizeof(int));
+	struct timespec start, end;
+	struct heap *Q = malloc (sizeof (struct heap));
+	Q->nodes = malloc (graph->V * sizeof(struct node*));
+	struct node *S = malloc (graph->V * sizeof (struct node));
+
+	if (res == NULL || Q == NULL || S == NULL
+		|| Q->nodes == NULL || in_heap == NULL
+		|| extracted == NULL) {
+		perror ("Failed to allocate memory in dijkstra_opt_alg\n");
+		exit (-1);
+	}
+
+	res->avg_min_heap_insert_time = 0.0;
 	res->avg_extract_min_time = 0.0;
 	res->avg_decrease_key_time = 0.0;
 	res->num_decrease_key = 0;
+	res->num_extract_min = 0;
 	res->visited_nodes = 0;
 	res->visited_edges = 0;
-	struct timespec start, end;
-	struct heap *Q = initialise_single_source (graph, s);
-	struct node *S = malloc (Q->heap_size * sizeof (struct node));
+
+	Q->heap_size = 0;
+	min_heap_insert (Q, s, 0, graph);
+	res->visited_nodes += 1;
+
 	while (Q->heap_size != 0) {
 		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
 		struct node *u = extract_min (Q);
 		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+		res->num_extract_min += 1;
 		res->avg_extract_min_time += diff(start,end).tv_nsec;
 		memcpy (&S[u->v_id], u, sizeof (struct node));
-		res->visited_nodes += 1;
+		extracted[u->v_id] = 1;
+		in_heap[u->v_id] = 0;
 		for (struct adjlistnode *s = graph->adjlists[u->v_id].head;
 			 s != NULL; s = s->next) {
 			struct node *v = graph->adjlists[s->v_id].nd;
 			int sp_est = u->sp_est + s->weight;
 			res->visited_edges += 1;
-			if ((v != NULL) && (v->sp_est > sp_est)) {
+			if ((v != NULL) && (v->sp_est > sp_est) && in_heap[s->v_id]) {
 				clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
 				decrease_key (Q, v, u, sp_est);
 				clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
 				res->avg_decrease_key_time += diff(start,end).tv_nsec;
 				res->num_decrease_key += 1;
+			} else if (!in_heap[s->v_id] && !extracted[s->v_id]) {
+				clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+				min_heap_insert (Q, s->v_id, sp_est, graph);
+				clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+				res->avg_min_heap_insert_time += diff(start,end).tv_nsec;
+				graph->adjlists[s->v_id].nd->pi = u;
+				in_heap[s->v_id] = 1;
+				res->visited_nodes += 1;
 			}
 		}
 		graph->adjlists[u->v_id].nd = NULL;
@@ -438,21 +466,28 @@ struct dijkstra_res *dijkstra_opt_alg (struct graph *graph, int s, int t)
 struct dijkstra_res *dijkstra_alg (struct graph *graph, int s)
 {
 	struct dijkstra_res *res = malloc (sizeof (struct dijkstra_res));
-	res->avg_extract_min_time = 0.0;
-	res->avg_decrease_key_time = 0.0;
-	res->num_decrease_key = 0;
-	res->visited_nodes = 0;
-	res->visited_edges = 0;
 	struct timespec start, end;
 	struct heap *Q = initialise_single_source (graph, s);
 	struct node *S = malloc (Q->heap_size * sizeof (struct node));
+
+	if (Q == NULL || S == NULL) {
+		perror ("Fail in dijkstra_alg\n");
+		exit (-1);
+	}
+
+	res->avg_extract_min_time = 0.0;
+	res->avg_decrease_key_time = 0.0;
+	res->num_decrease_key = 0;
+	res->visited_nodes = graph->V;
+	res->visited_edges = 0;
+
 	while (Q->heap_size != 0) {
 		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
 		struct node *u = extract_min (Q);
 		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
 		res->avg_extract_min_time += diff(start,end).tv_nsec;
+		res->num_extract_min += 1;
 		memcpy (&S[u->v_id], u, sizeof (struct node));
-		res->visited_nodes += 1;
 		for (struct adjlistnode *s = graph->adjlists[u->v_id].head;
 			 s != NULL; s = s->next) {
 			struct node *v = graph->adjlists[s->v_id].nd;

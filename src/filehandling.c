@@ -226,7 +226,7 @@ void write_to_csv (const char *fname, const char *input_file, int n, int m,
 				 input_file, "Dijkstra's", n, m, "", u, v, dijkstra->dist,
 				 "", dijkstra->dist_time, "", "", dijkstra->memory_consump,
 				 dijkstra->visited_nodes_ratio, dijkstra->visited_edges_ratio,
-				 dijkstra->num_heap_insert, dijkstra->num_decrease_key, dijkstra->visited_nodes,
+				 dijkstra->visited_nodes, dijkstra->num_decrease_key, dijkstra->num_extract_min,
 				 dijkstra->avg_min_heap_insert_time, dijkstra->avg_decrease_key_time,
 				 dijkstra->avg_extract_min_time);
 	} else if (dijkstra_opt != NULL) {
@@ -234,8 +234,8 @@ void write_to_csv (const char *fname, const char *input_file, int n, int m,
 				 input_file, "Dijkstra's optimised", n, m, "", u, v, dijkstra_opt->dist,
 				 "", dijkstra_opt->dist_time, "", "", dijkstra_opt->memory_consump,
 				 dijkstra_opt->visited_nodes_ratio, dijkstra_opt->visited_edges_ratio,
-				 dijkstra_opt->num_heap_insert, dijkstra_opt->num_decrease_key,
-				 dijkstra_opt->visited_nodes,
+				 dijkstra_opt->visited_nodes, dijkstra_opt->num_decrease_key,
+				 dijkstra_opt->num_extract_min,
 				 dijkstra_opt->avg_min_heap_insert_time,
 				 dijkstra_opt->avg_decrease_key_time,
 				 dijkstra_opt->avg_extract_min_time);
@@ -244,7 +244,7 @@ void write_to_csv (const char *fname, const char *input_file, int n, int m,
 				 input_file, "Bidirectional Dijkstra", n, m, "", u, v, bdj->dist,
 				 "", bdj->dist_time, "", "", bdj->memory_consump,
 				 bdj->visited_nodes_ratio, bdj->visited_edges_ratio,
-				 bdj->num_heap_insert, bdj->num_decrease_key, bdj->visited_nodes,
+				 bdj->visited_nodes, bdj->num_decrease_key, bdj->num_extract_min,
 				 bdj->avg_min_heap_insert_time, bdj->avg_decrease_key_time,
 				 bdj->avg_extract_min_time);
 	}

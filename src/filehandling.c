@@ -201,11 +201,11 @@ void write_to_csv (const char *fname, const char *input_file, int n, int m,
 	fseek (file, 0, SEEK_END);
 	unsigned long len = (unsigned long)ftell(file);
 	if (len == 0) {
-		fprintf (file, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s",
+		fprintf (file, "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s",
 				 "Time", "Input file", "Algorithm", "n=|V| (# vertices)",
 				 "m=|E| (# edges)","k integer", "vertex u",
 				 "vertex v", "d(u - v)", "prepro time (s)",
-				 "query time (s)", "prepro memory (KB)",
+				 "query time (s)", "num. query exe.", "prepro memory (KB)",
 				 "query memory (KB)", "peak memory consumption (KB)",
 				 "ratio visited nodes", "ratio visited edges",
 				 "min-heap-insert operations", "decrease-key operations",
@@ -216,23 +216,23 @@ void write_to_csv (const char *fname, const char *input_file, int n, int m,
 	char *time = ctime(&clk);
 	time[strlen(time) - 1] = '\0';
 	if (tz != NULL) {
-		fprintf (file, "\n%s,%s,%s,%d,%d,%d,%d,%d,%d,%f,%f,%d,%d,%d,%s,%s,%s,%s,%s,%s,%s,%s", time,
+		fprintf (file, "\n%s,%s,%s,%d,%d,%d,%d,%d,%d,%f,%f,%d,%d,%d,%d,%s,%s,%s,%s,%s,%s,%s,%s", time,
 				 input_file, "Thorup-Zwick", n, m, tz->k, u, v, tz->dist,
-				 tz->prepro_time, tz->dist_time, tz->prepro_memory_consump,
+				 tz->prepro_time, tz->dist_time, tz->query_times, tz->prepro_memory_consump,
 				 tz->dist_memory_consump, tz->prepro_memory_consump, "", "", "",
 				 "", "", "", "", "");
 	} else if (dijkstra != NULL) {
-		fprintf (file, "\n%s,%s,%s,%d,%d,%s,%d,%d,%d,%s,%f,%s,%s,%d,%f,%f,%d,%d,%d,%f,%f,%f", time,
+		fprintf (file, "\n%s,%s,%s,%d,%d,%s,%d,%d,%d,%s,%f,%d,%s,%s,%d,%f,%f,%d,%d,%d,%f,%f,%f", time,
 				 input_file, "Dijkstra's", n, m, "", u, v, dijkstra->dist,
-				 "", dijkstra->dist_time, "", "", dijkstra->memory_consump,
+				 "", dijkstra->dist_time, dijkstra->query_times, "", "", dijkstra->memory_consump,
 				 dijkstra->visited_nodes_ratio, dijkstra->visited_edges_ratio,
 				 dijkstra->visited_nodes, dijkstra->num_decrease_key, dijkstra->num_extract_min,
 				 dijkstra->avg_min_heap_insert_time, dijkstra->avg_decrease_key_time,
 				 dijkstra->avg_extract_min_time);
 	} else if (dijkstra_opt != NULL) {
-		fprintf (file, "\n%s,%s,%s,%d,%d,%s,%d,%d,%d,%s,%f,%s,%s,%d,%f,%f,%d,%d,%d,%f,%f,%f", time,
+		fprintf (file, "\n%s,%s,%s,%d,%d,%s,%d,%d,%d,%s,%f,%d,%s,%s,%d,%f,%f,%d,%d,%d,%f,%f,%f", time,
 				 input_file, "Dijkstra's optimised", n, m, "", u, v, dijkstra_opt->dist,
-				 "", dijkstra_opt->dist_time, "", "", dijkstra_opt->memory_consump,
+				 "", dijkstra_opt->dist_time, dijkstra_opt->query_times, "", "", dijkstra_opt->memory_consump,
 				 dijkstra_opt->visited_nodes_ratio, dijkstra_opt->visited_edges_ratio,
 				 dijkstra_opt->visited_nodes, dijkstra_opt->num_decrease_key,
 				 dijkstra_opt->num_extract_min,
@@ -240,9 +240,9 @@ void write_to_csv (const char *fname, const char *input_file, int n, int m,
 				 dijkstra_opt->avg_decrease_key_time,
 				 dijkstra_opt->avg_extract_min_time);
 	} else if (bdj != NULL) {
-		fprintf (file, "\n%s,%s,%s,%d,%d,%s,%d,%d,%d,%s,%f,%s,%s,%d,%f,%f,%d,%d,%d,%f,%f,%f", time,
+		fprintf (file, "\n%s,%s,%s,%d,%d,%s,%d,%d,%d,%s,%f,%d,%s,%s,%d,%f,%f,%d,%d,%d,%f,%f,%f", time,
 				 input_file, "Bidirectional Dijkstra", n, m, "", u, v, bdj->dist,
-				 "", bdj->dist_time, "", "", bdj->memory_consump,
+				 "", bdj->dist_time, bdj->query_times, "", "", bdj->memory_consump,
 				 bdj->visited_nodes_ratio, bdj->visited_edges_ratio,
 				 bdj->visited_nodes, bdj->num_decrease_key, bdj->num_extract_min,
 				 bdj->avg_min_heap_insert_time, bdj->avg_decrease_key_time,

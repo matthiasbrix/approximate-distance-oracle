@@ -1,7 +1,7 @@
 #ifndef GRAPH_H
 #define GRAPH_H
 
-#include "priorityqueue.h"
+#include "minheap.h"
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -15,6 +15,7 @@ extern int offset;
 // result and measurement of Thorup-Zwick
 struct tz_res {
   int dist;
+  int query_times;
   int k;
   double prepro_time;
   double dist_time;
@@ -25,6 +26,7 @@ struct tz_res {
 // result and measurement of Dijkstra's Algorithm
 struct dijkstra_res {
   int dist;
+  int query_times;
   double dist_time;
   int memory_consump;
   struct node *S_f;

@@ -7,23 +7,23 @@ TESTSDIR = tests
 
 .PHONY: clean
 
-all : priorityqueue graph filehandling thorupzwick main
+all : minheap graph filehandling thorupzwick main
 
 rebuild : clean all
 
-priorityqueue : $(SOURCEDIR)/priorityqueue.c $(SOURCEDIR)/priorityqueue.h
+minheap : $(SOURCEDIR)/minheap.c $(SOURCEDIR)/minheap.h
 	$(CC) $(CFLAGS) -c $< -o $(BINDIR)/$@.o
 
-graph : $(SOURCEDIR)/graph.c $(SOURCEDIR)/graph.h $(BINDIR)/priorityqueue.o
+graph : $(SOURCEDIR)/graph.c $(SOURCEDIR)/graph.h $(BINDIR)/minheap.o
 	$(CC) $(CFLAGS) -c $< -o $(BINDIR)/$@.o
 
 filehandling : $(SOURCEDIR)/filehandling.c $(SOURCEDIR)/filehandling.h $(BINDIR)/graph.o
 	$(CC) $(CFLAGS) -c $< -o $(BINDIR)/$@.o
 
-thorupzwick : $(SOURCEDIR)/thorupzwick.c $(SOURCEDIR)/thorupzwick.h $(BINDIR)/graph.o $(BINDIR)/priorityqueue.o $(BINDIR)/filehandling.o
+thorupzwick : $(SOURCEDIR)/thorupzwick.c $(SOURCEDIR)/thorupzwick.h $(BINDIR)/graph.o $(BINDIR)/minheap.o $(BINDIR)/filehandling.o
 	$(CC) $(CFLAGS) -c $< -o $(BINDIR)/$@.o
 
-main : $(SOURCEDIR)/main.c $(SOURCEDIR)/main.h $(BINDIR)/thorupzwick.o $(BINDIR)/graph.o $(BINDIR)/priorityqueue.o $(BINDIR)/filehandling.o
+main : $(SOURCEDIR)/main.c $(SOURCEDIR)/main.h $(BINDIR)/thorupzwick.o $(BINDIR)/graph.o $(BINDIR)/minheap.o $(BINDIR)/filehandling.o
 	$(CC) $(CFLAGS) $< $(BINDIR)/*.o -o $(BINDIR)/$@ -lm
 
 clean :

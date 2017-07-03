@@ -23,6 +23,7 @@ void help () {
 	printf ("<k integer>: Any integer that satisfies k >= 1 \n");
 	printf ("<u integer>: Any integer that represents a node from <inputfile> \n");
 	printf ("<v integer>: Any integer that represents a node from <inputfile> \n\n");
+
 	return;
 }
 
@@ -63,6 +64,8 @@ struct dijkstra_res *run_bdj (struct graph *graph, int u, int v, int n, int m)
 	bdj->visited_nodes_ratio = (double)bdj->visited_nodes/(double)n;
 	bdj->visited_edges_ratio = (double)bdj->visited_edges/(double)m;
 
+	bdj->query_times = DIJKSTRA_TIMES;
+
 	printf ("\nResult of Bidirectional Dijkstra (%d, %d) = %d\n", u, v, bdj->dist);
 	printf ("vertices n=%d, edges m=%d\n", n, m);
 	printf ("Visiting ratio of vertices = %f, edges = %f\n",
@@ -75,6 +78,7 @@ struct dijkstra_res *run_bdj (struct graph *graph, int u, int v, int n, int m)
 	printf ("%d min-heap-insert operations. Avg time pr. operation: %.10f ms\n",
 			bdj->visited_nodes, bdj->avg_min_heap_insert_time);
 	printf ("Time spent on running Bidirectional Dijkstra (%d, %d) = %f sec\n", u, v, bdj->dist_time);
+	printf ("Algorithm is executed %d times\n", bdj->query_times);
 	printf ("Memory usage of Bidirectional Dijkstra = %d KB\n", bdj->memory_consump);
 
 	return bdj;
@@ -116,6 +120,8 @@ struct dijkstra_res *run_dijkstra (struct graph *graph, int u, int v, int n, int
 
 	dijkstra->dist = dijkstra->S_f[v-offset].sp_est;
 
+	dijkstra->query_times = DIJKSTRA_TIMES;
+
 	printf ("\nResult of Dijkstra's algorithm (%d, %d) = %d\n", u, v,
 			dijkstra->dist);
 	printf ("vertices n=%d, edges m=%d\n", n, m);
@@ -130,6 +136,7 @@ struct dijkstra_res *run_dijkstra (struct graph *graph, int u, int v, int n, int
 			0, 0.0);
 	printf ("Time spent on running Dijkstra's algorithm (%d, %d) = %f sec\n",
 			u, v, dijkstra->dist_time);
+	printf ("Algorithm is executed %d times\n", dijkstra->query_times);
 	printf ("Memory usage of Dijkstra's algorithm = %d KB\n", dijkstra->memory_consump);
 
 	return dijkstra;
@@ -174,6 +181,8 @@ struct dijkstra_res *run_opt_dijkstra (struct graph *graph, int u, int v, int n,
 
 	dijkstra->dist = dijkstra->S_f[v-offset].sp_est;
 
+	dijkstra->query_times = DIJKSTRA_TIMES;
+
 	printf ("\nResult of optimised Dijkstra's algorithm (%d, %d) = %d\n", u, v,
 			dijkstra->dist);
 	printf ("vertices n=%d, edges m=%d\n", n, m);
@@ -187,6 +196,7 @@ struct dijkstra_res *run_opt_dijkstra (struct graph *graph, int u, int v, int n,
 			dijkstra->visited_nodes, dijkstra->avg_min_heap_insert_time);
 	printf ("Time spent on running optimised Dijkstra (%d, %d) = %f sec\n",
 			u, v, dijkstra->dist_time);
+	printf ("Algorithm is executed %d times\n", dijkstra->query_times);
 	printf ("Memory usage of optimised Dijkstra = %d KB\n", dijkstra->memory_consump);
 
 	return dijkstra;
@@ -202,11 +212,14 @@ struct dijkstra_res *run_opt_dijkstra (struct graph *graph, int u, int v, int n,
  * First it calls prepro, the preprocessing algorithm and then calls dist,
  * the query algorithm
  */
-struct tz_res *run_tz (struct graph *graph, int k, int u, int v, int n, int m)
+struct tz_res *run_tz (struct graph *graph, int k, int u, int v, int n, int m, int query_times)
 {
 	struct tz_res *tz = malloc (sizeof (struct tz_res));
 	struct prepro *pp = malloc (sizeof (struct prepro));
 	clock_t begin, end;
+
+	tz->dist = 0, tz->dist_time = 0.0;
+	tz->query_times = query_times;
 
 	begin = clock();
 	pp->success = false;
@@ -217,11 +230,17 @@ struct tz_res *run_tz (struct graph *graph, int k, int u, int v, int n, int m)
 	end = clock();
 	tz->prepro_time = (double)(end - begin) / CLOCKS_PER_SEC;
 	tz->prepro_memory_consump = get_vm_peak();
-	begin = clock();
-	tz->dist = dist (&pp->nodes[u-offset], &pp->nodes[v-offset], pp->bunchlist);
-	end = clock();
-	tz->dist_time = (double)(end - begin) / CLOCKS_PER_SEC;
-	tz->dist_memory_consump = pp->bunchlist->bunch_size / 1000;
+
+	for (int i = 0; i < tz->query_times; i++) {
+		begin = clock();
+		tz->dist += dist (&pp->nodes[u-offset], &pp->nodes[v-offset], pp->bunchlist);
+		end = clock();
+		tz->dist_time += (double)(end - begin) / CLOCKS_PER_SEC;
+	}
+
+	tz->dist = tz->dist / tz->query_times;
+	tz->dist_time = tz->dist_time / tz->query_times;
+	tz->dist_memory_consump += pp->bunchlist->bunch_size / 1000;
 	tz->k = k;
 
 	printf ("Time spent on prepro k=%d Thorup-Zwick: %f\n", tz->k, tz->prepro_time);
@@ -229,6 +248,7 @@ struct tz_res *run_tz (struct graph *graph, int k, int u, int v, int n, int m)
 	printf ("Memory usage of prepro = %d KB\n", tz->prepro_memory_consump);
 	printf ("Result of Thorup-Zwick dist(%d, %d) = %d\n", u, v, tz->dist);
 	printf ("Time spent on dist Thorup-Zwick: %f sec\n", tz->dist_time);
+	printf ("Query algorithm is executed %d times\n", tz->query_times);
 	printf ("Memory usage of dist (bunch size) = %d KB\n", tz->dist_memory_consump);
 
 	return tz;
@@ -250,6 +270,7 @@ int main (int argc, char *argv[])
 			const char *fname_write = argv[i+2];
 			const int u = atoi(argv[i+4]);
 			const int v = atoi(argv[i+5]);
+			const int query_times = atoi(argv[i+6]);
 			struct graph_data *gd = read_vertices_and_edges (fname_read);
 			if (u > gd->n || v > gd->n) {
 				printf ("Source vertex u or/and target vertex v is/are invalid\n");
@@ -266,7 +287,7 @@ int main (int argc, char *argv[])
 					help ();
 					return EXIT_FAILURE;
 				}
-				struct tz_res *tz = run_tz (graph, k, u, v, gd->n, gd->m);
+				struct tz_res *tz = run_tz (graph, k, u, v, gd->n, gd->m, query_times);
 				write_to_csv (fname_write, fname_read, gd->n, gd->m, u, v,
 							  tz, NULL, NULL, NULL);
 			} else if (strcmp ("dj", argv[i]) == 0) {

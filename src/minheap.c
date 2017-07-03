@@ -1,4 +1,4 @@
-#include "priorityqueue.h"
+#include "minheap.h"
 
 /**
  * add_node - A utility function to create a new heap node

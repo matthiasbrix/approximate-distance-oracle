@@ -139,7 +139,7 @@ struct heap *initialise_single_source_tz (unsigned int n)
  * Running time: O((m + n) lg n)
  * Executing dijkstra's algorithm but without a specified single source as
  * initialise single source procedure is required to be called on before hand
- * The algorithm is implemented with a priorityqueue as a data structure.
+ * The algorithm is implemented with a priorityqueue (min-heap) as a data structure.
  * pop takes lg n, V = E = m = n, loop m times
  */
 struct node *dijkstra_alg_tz (struct graph *graph, struct heap *Q)
@@ -183,10 +183,10 @@ struct node *dijkstra_alg_tz (struct graph *graph, struct heap *Q)
  */
 struct dijkstra_res *bidirectional_dijkstra (struct graph *gf, int s, int t)
 {
-	// min-prioty queue for forward search
+	// min-priority queue for forward search
 	struct heap *Q_f = malloc (sizeof (struct heap));
 	Q_f->nodes = malloc (gf->V * sizeof(struct node*));
-	// min-prioty queue for backwards search
+	// min-priority queue for backwards search
 	struct heap *Q_b = malloc (sizeof (struct heap));
 	Q_b->nodes = malloc (gf->V * sizeof(struct node*));
 	// Auxiliary arrays

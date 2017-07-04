@@ -22,7 +22,8 @@ extern int offset;
    and use this for the hash table of the bunches */
 struct node {
   int v_id;
-  int sp_est;
+  int sp_est; // f(n) for A*
+  int gn;
   int index; // current index in heap
   struct node *pi; // predecessor
   UT_hash_handle hh; // makes this structure hashable

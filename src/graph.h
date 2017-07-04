@@ -23,8 +23,8 @@ struct tz_res {
   int dist_memory_consump;
 };
 
-// result and measurement of Dijkstra's Algorithm
-struct dijkstra_res {
+// result and measurement of Dijkstra's Algorithm and A*
+struct ssp_res {
   int dist;
   int query_times;
   double dist_time;
@@ -53,15 +53,9 @@ struct graph_data {
 struct graph* init_graph (int V);
 void pp_nodes (struct node *S, int i);
 void pp_graph (struct graph* graph);
-struct dijkstra_res *dijkstra_opt_alg (struct graph *graph, int s, int t);
-struct dijkstra_res *dijkstra_alg (struct graph *graph, int s);
-struct node *dijkstra_alg_tz (struct graph *graph, struct heap *Q);
-struct dijkstra_res *bidirectional_dijkstra (struct graph *gf, int u, int v);
-struct heap *initialise_single_source (struct graph *graph, int s);
 struct adjlistnode *add_adj_node (int v, int weight);
 void add_edges (struct graph *graph, int u, int v, unsigned int w);
 struct graph *copy_graph_struct (struct graph* old_graph, struct heap *heap);
-struct heap *initialise_single_source_tz (unsigned int n);
 void free_graph (struct graph *graph);
 
 #endif

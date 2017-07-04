@@ -25,8 +25,7 @@ do
  esac
 done
 
-make clean
-make all
+make rebuild
 
 # Chop of "/" from tests/file
 for (( i=0; i<${#INPUTFILE}; i++ )); do

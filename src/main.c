@@ -14,17 +14,16 @@ int offset = 0;
  * to be called with flag --help when executing the program
  */
 void help () {
-  printf ("To run, required arguments are as follows:\n");
-	printf ("./main <algorithm> <inputfile> <outputfile> <k integer> <u integer> <v integer>\n");
+	printf ("To run, required arguments are as follows (separate each argument with a whitespace):\n\n");
+	printf ("./main <algorithm> <inputfile> <outputfile> <k integer> <u integer> <v integer> <query times>\n");
 	printf ("\nPossible input for each flag:\n\n");
 	printf ("<algorithm>: dj, djopt, tz, bdj\n");
 	printf ("<inputfile>: tests/USANY.txt (needs to be of DIMACS ssp file format) \n");
 	printf ("<outputfile>: output.csv (will be generated automatically) \n");
 	printf ("<k integer>: Any integer that satisfies k >= 1 \n");
 	printf ("<u integer>: Any integer that represents a node from <inputfile> \n");
-	printf ("<v integer>: Any integer that represents a node from <inputfile> \n\n");
-
-	return;
+	printf ("<v integer>: Any integer that represents a node from <inputfile> \n");
+	printf ("<query times>: Any positive integer, indicating how many times the Thorup-Zwick query alg. shall be executed\n\n");
 }
 
 /**
@@ -36,9 +35,9 @@ void help () {
  * @m: number of edges in graph
  * Calls Bidirectional Dijkstra's algorithm, and measures the spent RAM and CPU time
  */
-struct dijkstra_res *run_bdj (struct graph *graph, int u, int v, int n, int m)
+struct ssp_res *run_bdj (struct graph *graph, int u, int v, int n, int m)
 {
-	struct dijkstra_res *bdj;
+	struct ssp_res *bdj;
 	double cpu_time_spent = 0.0, avg_ins = 0.0, avg_dec = 0.0, avg_ext = 0.0;
 	for (int i = 0; i < DIJKSTRA_TIMES; i++) {
 		clock_t begin = clock();
@@ -93,9 +92,9 @@ struct dijkstra_res *run_bdj (struct graph *graph, int u, int v, int n, int m)
  * @m: number of edges in graph
  * Calls Dijkstra's algorithm, and measures the spent RAM and CPU time
  */
-struct dijkstra_res *run_dijkstra (struct graph *graph, int u, int v, int n, int m)
+struct ssp_res *run_dijkstra (struct graph *graph, int u, int v, int n, int m)
 {
-	struct dijkstra_res *dijkstra;
+	struct ssp_res *dijkstra;
 	double cpu_time_spent = 0.0, avg_dec = 0.0, avg_ext = 0.0;
 	for (int i = 0; i < DIJKSTRA_TIMES; i++) {
 		clock_t begin = clock();
@@ -151,9 +150,9 @@ struct dijkstra_res *run_dijkstra (struct graph *graph, int u, int v, int n, int
  * @m: number of edges in graph
  * Calls Dijkstra's algorithm, and measures the spent RAM and CPU time
  */
-struct dijkstra_res *run_opt_dijkstra (struct graph *graph, int u, int v, int n, int m)
+struct ssp_res *run_opt_dijkstra (struct graph *graph, int u, int v, int n, int m)
 {
-	struct dijkstra_res *dijkstra;
+	struct ssp_res *dijkstra;
 	double cpu_time_spent = 0.0, avg_ins = 0.0, avg_dec = 0.0, avg_ext = 0.0;
 	for (int i = 0; i < DIJKSTRA_TIMES; i++) {
 		clock_t begin = clock();
@@ -251,6 +250,11 @@ struct tz_res *run_tz (struct graph *graph, int k, int u, int v, int n, int m, i
 	printf ("Query algorithm is executed %d times\n", tz->query_times);
 	printf ("Memory usage of dist (bunch size) = %d KB\n", tz->dist_memory_consump);
 
+	begin = clock();
+	struct ssp_res *test = astar (graph, pp, u-offset, v-offset);
+	end = clock();
+	test->dist = test->S_f[v-offset].sp_est;
+	printf ("Result of A*(%d,%d)=%d in time %f sec\n", u, v, test->dist, ((double)(end - begin) / CLOCKS_PER_SEC));
 	return tz;
 }
 
@@ -291,15 +295,15 @@ int main (int argc, char *argv[])
 				write_to_csv (fname_write, fname_read, gd->n, gd->m, u, v,
 							  tz, NULL, NULL, NULL);
 			} else if (strcmp ("dj", argv[i]) == 0) {
-				struct dijkstra_res *dijkstra = run_dijkstra (graph, u, v, gd->n, gd->m);
+				struct ssp_res *dijkstra = run_dijkstra (graph, u, v, gd->n, gd->m);
 				write_to_csv (fname_write, fname_read, gd->n, gd->m, u, v,
 							  NULL, dijkstra, NULL, NULL);
 			} else if (strcmp ("djopt", argv[i]) == 0) {
-				struct dijkstra_res *djopt = run_opt_dijkstra (graph, u, v, gd->n, gd->m);
+				struct ssp_res *djopt = run_opt_dijkstra (graph, u, v, gd->n, gd->m);
 				write_to_csv (fname_write, fname_read, gd->n, gd->m, u, v,
 							  NULL, NULL, djopt, NULL);
 			} else if (strcmp ("bdj", argv[i]) == 0) {
-				struct dijkstra_res *bdj = run_bdj (graph, u, v, gd->n, gd->m);
+				struct ssp_res *bdj = run_bdj (graph, u, v, gd->n, gd->m);
 				write_to_csv (fname_write, fname_read, gd->n, gd->m, u, v,
 							  NULL, NULL, NULL, bdj);
 			} else {

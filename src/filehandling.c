@@ -189,9 +189,9 @@ struct graph_data *read_vertices_and_edges (const char *fname)
  * Writing all results of this program to a comma separated value (csv) file
  */
 void write_to_csv (const char *fname, const char *input_file, int n, int m,
-					int u, int v, struct tz_res *tz, struct dijkstra_res
-				   *dijkstra, struct dijkstra_res *dijkstra_opt,
-				   struct dijkstra_res *bdj)
+					int u, int v, struct tz_res *tz, struct ssp_res
+				   *dijkstra, struct ssp_res *dijkstra_opt,
+				   struct ssp_res *bdj)
 {
 	file = fopen (fname, "a+");
 

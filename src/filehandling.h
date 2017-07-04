@@ -11,8 +11,8 @@ int read_offset_in_file (const char *fname);
 struct graph_data *read_vertices_and_edges (const char *fname);
 void write_to_csv (const char *fname, const char *input_file, int n,
                     int m, int u, int v, struct tz_res *tz,
-                   struct dijkstra_res *dijkstra,
-                   struct dijkstra_res *dijkstra_opt,
-                   struct dijkstra_res *bdj);
+                   struct ssp_res *dijkstra,
+                   struct ssp_res *dijkstra_opt,
+                   struct ssp_res *bdj);
 
 #endif

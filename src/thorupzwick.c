@@ -80,6 +80,75 @@ void add_s_node_to_graph (struct graph *graph, struct aseq *ai)
 }
 
 /**
+ * initialise_single_source_tz - initialising heap for Dijkstra's alg.
+ * @graph: for the graph pointers
+ * Running time: O(n)
+ * This copies pointers of heap nodes to graph, to keep bidirectional
+ * pointers. Also it initialises a heap but with no single source actually
+ * - this is set manually outside the function
+ */
+struct heap *initialise_single_source_tz (unsigned int n)
+{
+	struct heap *heap = malloc (sizeof (struct heap));
+	// One extra slot for node s (later used for dijkstra)
+	heap->nodes = malloc ((n+1) * sizeof(struct node*));
+
+	if (heap == NULL || heap->nodes == NULL) {
+		perror ("Pointer error of heap\n");
+		exit (-1);
+	}
+
+	int val = (int) INFINITY;
+
+	for (unsigned int i = 0; i < n; i++) {
+		heap->nodes[i] = add_node (i, val, i);
+	}
+
+	heap->heap_size = n;
+
+	return heap;
+}
+
+/**
+ * dijkstra_alg_tz - Dijkstra's algorithm (modified for Thorup-Zwick)
+ * @graph: the graph G = (V, E)
+ * @Q: the heap to work with.
+ * Running time: O((m + n) lg n)
+ * Executing dijkstra's algorithm but without a specified single source as
+ * initialise single source procedure is required to be called on before hand
+ * The algorithm is implemented with a priorityqueue (min-heap) as a data structure.
+ * pop takes lg n, V = E = m = n, loop m times
+ * Is used to for computing pivots
+ */
+struct node *dijkstra_alg_tz (struct graph *graph, struct heap *Q)
+{
+	struct node *S = malloc (Q->heap_size * sizeof (struct node));
+
+	if (S == NULL) {
+		perror ("Pointer error of S array\n");
+		exit (-1);
+	}
+
+	while (Q->heap_size != 0) {
+		struct node *u = extract_min (Q);
+		memcpy (&S[u->v_id], u, sizeof (struct node));
+		for (struct adjlistnode *s = graph->adjlists[u->v_id].head;
+			 s != NULL; s = s->next) {
+			struct node *v = graph->adjlists[s->v_id].nd;
+			if ((v != NULL) && (v->sp_est > u->sp_est + s->weight)) {
+				int sp_est = u->sp_est + s->weight;
+				decrease_key (Q, v, u, sp_est);
+			}
+		}
+		// avoiding the u node can be relaxed again
+		graph->adjlists[u->v_id].nd = NULL;
+	}
+
+	free_heap (Q);
+	return S;
+}
+
+/**
  * find_pivot - finding all pivot elements for v in A_i
  * @aiplusone_pivot_arr: A_i+1 set
  * @n: number of nodes in graph, |V|=n
@@ -519,7 +588,8 @@ struct prepro *prepro (struct graph *graph, int k)
 		FREE (C[i]);
 	}
 
-	free_graph (graph);
+	// if no A* uncomment
+	/* free_graph (graph); */
 
 	return prepro;
 }

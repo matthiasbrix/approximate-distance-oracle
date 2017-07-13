@@ -224,7 +224,6 @@ struct tz_res *run_tz (struct graph *graph, int k, int u, int v, int n, int m, i
 	pp->success = false;
 	while (!pp->success) {
 	  pp = prepro (graph, k);
-	  sleep (1);
 	}
 	end = clock();
 	tz->prepro_time = (double)(end - begin) / CLOCKS_PER_SEC;
@@ -260,6 +259,7 @@ struct tz_res *run_tz (struct graph *graph, int k, int u, int v, int n, int m, i
 
 int main (int argc, char *argv[])
 {
+
 	if (argc == 2 && strcmp ("--help", argv[1]) == 0) {
 		help ();
 	} else if ((argc-1) < MIN_REQUIRED || (((argc-1) % MIN_REQUIRED) != 0)) {

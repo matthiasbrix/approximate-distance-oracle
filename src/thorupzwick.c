@@ -441,15 +441,13 @@ bool create_aseqs (struct aseq **A, int k, struct graph *graph, struct node *nod
 	}
 	A[0]->setlength = graph->V;
 
-	srand((unsigned)time(NULL));
-
 	for (int i = 1; i <= k-1; i++) {
 		A[i] = malloc (sizeof (struct aseq));
 		A[i]->added = calloc (graph->V, sizeof(int));
 		A[i]->setlength = 0;
 		for (int j = 0; j < A[i-1]->setlength; j++) {
 			// Generates 0.0 - 1.0
-			double rnd = (double)rand()/RAND_MAX;
+			double rnd = (double)randombytes_uniform(RAND_MAX)/RAND_MAX;
 			// Check random number is <= n^{-1/k}
 			if (rnd <= pow (graph->V, -1.0/(double)k)) {
 				int v_id = A[i-1]->nodes[j].v_id;

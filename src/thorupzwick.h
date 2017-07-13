@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include "graph.h"
 #include "filehandling.h"
+#include "sodium.h"
 
 extern int offset;
 

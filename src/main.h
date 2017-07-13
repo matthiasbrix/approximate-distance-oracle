@@ -3,7 +3,7 @@
 
 #include "thorupzwick.h"
 #include "filehandling.h"
-#include "ssp.h"
+#include "sssp.h"
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/sysinfo.h>

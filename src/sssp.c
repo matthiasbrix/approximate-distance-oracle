@@ -1,4 +1,4 @@
-#include "ssp.h"
+#include "sssp.h"
 
 /**
  * diff - measuring cpu time
@@ -262,7 +262,10 @@ struct ssp_res *dijkstra_opt_alg (struct graph *graph, int s, int t)
 	res->visited_edges = 0;
 
 	Q->heap_size = 0;
+	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
 	min_heap_insert (Q, s, 0, graph);
+	clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+	res->avg_min_heap_insert_time += diff(start,end).tv_nsec;
 	res->visited_nodes += 1;
 
 	while (Q->heap_size != 0) {
@@ -327,6 +330,7 @@ struct ssp_res *dijkstra_alg (struct graph *graph, int s)
 
 	res->avg_extract_min_time = 0.0;
 	res->avg_decrease_key_time = 0.0;
+	res->num_extract_min = 0;
 	res->num_decrease_key = 0;
 	res->visited_nodes = graph->V;
 	res->visited_edges = 0;
@@ -386,7 +390,6 @@ struct ssp_res *astar (struct graph *graph, struct prepro *pp, int src, int targ
 	Q->heap_size = 0;
 	min_heap_insert (Q, src, 0, graph);
 	res->visited_nodes += 1;
-
 	while (Q->heap_size != 0) {
 		clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
 		struct node *u = extract_min (Q);
@@ -396,6 +399,7 @@ struct ssp_res *astar (struct graph *graph, struct prepro *pp, int src, int targ
 		memcpy (&S[u->v_id], u, sizeof (struct node));
 		extracted[u->v_id] = 1;
 		in_heap[u->v_id] = 0;
+
 		if (u->v_id == targ) {
 			free_heap (Q);
 			res->S_f = S;
@@ -419,15 +423,19 @@ struct ssp_res *astar (struct graph *graph, struct prepro *pp, int src, int targ
 				res->avg_decrease_key_time += diff(start,end).tv_nsec;
 				res->num_decrease_key += 1;
 			} else {
+				// both for in S and not in S and not in Q
+				memset (&S[s->v_id], 0, sizeof(S[s->v_id]));
 				clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
 				min_heap_insert (Q, s->v_id, gv, graph);
 				clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
 				res->avg_min_heap_insert_time += diff(start,end).tv_nsec;
+				graph->adjlists[s->v_id].nd->pi = u;
+				res->visited_nodes += 1;
 			}
-			graph->adjlists[s->v_id].nd->pi = u;
 			graph->adjlists[s->v_id].nd->gn = gv;
-			int hv = dist (&pp->nodes[s->v_id-offset],
-						   &pp->nodes[targ-offset], pp->bunchlist);
+			int hv = dist (&pp->nodes[s->v_id],
+						   &pp->nodes[targ], pp->bunchlist);
+			hv = hv / (2*pp->k-1);
 			graph->adjlists[s->v_id].nd->sp_est = gv + hv; // f(v)
 			in_heap[s->v_id] = 1;
 			res->visited_nodes += 1;

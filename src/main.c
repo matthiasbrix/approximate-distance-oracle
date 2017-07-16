@@ -60,8 +60,8 @@ struct ssp_res *run_bdj (struct graph *graph, int u, int v, int n, int m)
 	bdj->avg_decrease_key_time = (avg_dec / (double)DIJKSTRA_TIMES);
 	bdj->avg_min_heap_insert_time = (avg_ins / (double)DIJKSTRA_TIMES);
 	bdj->dist_time = (cpu_time_spent / DIJKSTRA_TIMES);
-	bdj->visited_nodes_ratio = (double)bdj->visited_nodes/(double)n;
-	bdj->visited_edges_ratio = (double)bdj->visited_edges/(double)m;
+	bdj->visited_nodes_ratio = (double)bdj->visited_nodes/(double)(2*n);
+	bdj->visited_edges_ratio = (double)bdj->visited_edges/(double)(2*m);
 
 	bdj->query_times = DIJKSTRA_TIMES;
 

@@ -10,3 +10,6 @@
 /tests/USACENTRAL.txt
 /matti.sh
 /einar.sh
+/tests/0-n=10000-m=9999000-d=0.1.txt
+/tests/0-n=10000-m=49995000-d=0.5.txt
+/tests/0-n=10000-m=89991000-d=0.9.txt

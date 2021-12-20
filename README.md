@@ -33,7 +33,7 @@ The other way to execute the program is with the script `run_algs.sh` which runs
 ### Example
 
 ```
-./run_algs.sh -i tests/USANY.txt -o results.csv -k 10 -u 1000 -v 150000 -p 3 -q 10
+./run_algs.sh -i test-files/USANY.txt -o results.csv -k 10 -u 1000 -v 150000 -p 3 -q 10
 ```
 
 runs Thorup-Zwick preprocessing 3 times, query 10 times, and each of the four SSSP algorithms once with the above settings, taking `USANY.txt` as input and writing all results to the file `results.csv`. 

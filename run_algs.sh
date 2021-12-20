@@ -69,6 +69,7 @@ elif [[ -r $INPUTFILE && $KINT -gt 0 && $UINT -gt 0 && $VINT -gt 0 && $PREPRO -g
     ./bin/$EXE "bdj" $INPUTFILE $OUTPUTFILE $KINT $UINT $VINT $QUERY >> $name
 else
     echo "Something went wrong!"
+    exit
 fi
 
 mv $name benchmarks

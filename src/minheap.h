@@ -65,6 +65,6 @@ void decrease_key (struct heap *heap, struct node *v, struct node *u, int sp_est
 struct heap *copy_heap_struct (struct heap *old_heap);
 void find_node_pos (struct heap *heap, int u);
 void free_heap (struct heap *heap);
-void pp_heap (struct heap *hp);
+void pp_heap (struct heap *hp, int offset);
 
 #endif

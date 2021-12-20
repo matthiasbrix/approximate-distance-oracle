@@ -231,7 +231,7 @@ void free_heap (struct heap *heap)
  * Running time: O(n)
  * Printing all entities in a user friendly matter
  */
-void pp_heap (struct heap *hp)
+void pp_heap (struct heap *hp, int offset)
 {
 	printf ("\nPRINT HEAP NODES\n");
 	printf ("SPEST ID INDEX PRED.\n");

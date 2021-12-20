@@ -51,8 +51,8 @@ struct graph_data {
 };
 
 struct graph* init_graph (int V);
-void pp_nodes (struct node *S, int i);
-void pp_graph (struct graph* graph);
+void pp_nodes (struct node *S, int i, int offset);
+void pp_graph (struct graph* graph, int offset);
 struct adjlistnode *add_adj_node (int v, int weight);
 void add_edges (struct graph *graph, int u, int v, unsigned int w);
 struct graph *copy_graph_struct (struct graph* old_graph, struct heap *heap);

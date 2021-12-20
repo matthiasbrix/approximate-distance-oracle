@@ -111,7 +111,7 @@ int read_offset_in_file (const char *fname)
  * the DIMACS ssp graph format (.gr)
  * http://www.diag.uniroma1.it/challenge9/format.shtml
  */
-void read_from_file (struct graph *graph, const char *fname)
+void read_from_file (struct graph *graph, const char *fname, int offset)
 {
 	char t;
 	int u, v, w, i;

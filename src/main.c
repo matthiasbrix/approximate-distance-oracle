@@ -283,7 +283,7 @@ int main (int argc, char *argv[])
 				return EXIT_FAILURE;
 			}
 			struct graph *graph = init_graph (gd->n);
-			read_from_file (graph, fname_read);
+			read_from_file (graph, fname_read, offset);
 			if (strcmp ("tz", argv[i]) == 0) {
 				const int k = atoi(argv[i+3]);
 				if (k <= 0) {

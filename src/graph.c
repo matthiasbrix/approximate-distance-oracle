@@ -107,7 +107,7 @@ void free_graph (struct graph *graph)
  * Running time: O(m + n)
  * Printing all entities in a user friendly matter
  */
-void pp_graph (struct graph *graph)
+void pp_graph (struct graph *graph, int offset)
 {
 	printf ("PRINT ADJLIST RESULTS\n");
 	for (unsigned int i = 0; i < graph->V; i++) {
@@ -130,7 +130,7 @@ void pp_graph (struct graph *graph)
  * Printing all nodes result after Dijkstra. Results are
  * vertex id, shortest path from source vertex, and predecessor
  */
-void pp_nodes (struct node *S, int i)
+void pp_nodes (struct node *S, int i, int offset)
 {
 	printf ("PRINT SSP RESULTS\n");
 	for (int j = 0; j < i; j++) {

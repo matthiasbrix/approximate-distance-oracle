@@ -20,6 +20,12 @@ make all
 
 ## How to run
 
+### File format of graphs
+
+The graphs are based on the file format by the 9th DIMACS SSP [competition](http://www.diag.uniroma1.it//challenge9/competition.shtml). The file format can be seen [here](http://www.diag.uniroma1.it//challenge9/format.shtml).
+
+### Run the algorithm
+
 Executing the algorithms can be done in two ways. One is executing the executable with the required arguments. e.g 
 
 ```

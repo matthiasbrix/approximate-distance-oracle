@@ -28,7 +28,7 @@ Executing the algorithms can be done in two ways. One is executing the executabl
 
 where `tz` indicates the Thorup-Zwick is to be run, `test-files/densegraph.txt` is a valid input graph in the DIMACS ssp file format. Note that the DIMACS ssp file format is a strict requirement to run the algorithm. The file `results.csv` is just the .csv we wish to write the results to (doesn't need to exist). The next argument represents the `k` value for the algorithm. The shortest path query is being done one (23, 431), running the Thorup-Zwick query algorithm once (indicated by 1). <br /> <br />
 
-The other way to execute the program is with the script `run_algs.sh` which runs and measures all implemented algorithms, printing out results to a `.csv` file.
+The other way to execute the program is with the script `run_algs.sh` which runs and measures all implemented algorithms, printing out results to a `.csv` file and benchmarks in the `benchmarks` folder.
 
 ### Example
 
@@ -37,6 +37,10 @@ The other way to execute the program is with the script `run_algs.sh` which runs
 ```
 
 runs Thorup-Zwick preprocessing 3 times, query 10 times, and each of the four SSSP algorithms once with the above settings, taking `USANY.txt` as input and writing all results to the file `results.csv`. 
+
+## Benchmarks
+
+Previously run benchmarks can be inspected in the folder `benchmarks`.
 
 ## Contributors
 

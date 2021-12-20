@@ -53,12 +53,15 @@ if [ $DEBUG = 'y' ]; then
     name=$i-$FILENAME.txt
     ./bin/$EXE > $name
 elif [[ -r $INPUTFILE && $KINT -gt 0 && $UINT -gt 0 && $VINT -gt 0 && $PREPRO -gt 0 && $QUERY -gt 0 ]]; then
+    echo "TEST"
     FILENAME=$NEWINPUTFILE-"k=$KINT"-"u=$UINT"-"v=$VINT"-"p=$PREPRO"-"q=$QUERY"
     # Find out which num. of occurence it is
     i=0
     while [[ -e benchmarks/$i-$FILENAME.txt ]] ; do
         let i++
     done
+    echo "YEAH"
+    echo $i
     name=$i-$FILENAME.txt
     touch $name
     for (( j=0; j<$PREPRO; j++ )); do
@@ -72,5 +75,7 @@ else
     exit
 fi
 
+echo "HEHE"
+echo $name
 mv $name benchmarks
 

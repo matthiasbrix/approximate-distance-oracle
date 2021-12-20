@@ -83,8 +83,10 @@ int read_offset_in_file (const char *fname)
 	offset = (int) INFINITY;
 	file = fopen (fname, "r");
 
-	if (file == NULL)
-		exit (EXIT_FAILURE);
+	if (file == NULL) {
+		printf("File %s does not exist!", fname);
+		exit(EXIT_FAILURE);
+	}
 
 	while (!feof(file)) {
 		int num_match = fscanf (file, "%c %d %d %d\n", &t, &u, &v, &w);
@@ -119,8 +121,10 @@ void read_from_file (struct graph *graph, const char *fname, int offset)
 	i = 0;
 	file = fopen (fname, "r");
 
-	if (file == NULL)
-		exit (EXIT_FAILURE);
+	if (file == NULL) {
+		printf("File %s does not exist!", fname);
+		exit(EXIT_FAILURE);
+	}
 
 	while (!feof(file)) {
 		int num_match = fscanf (file, "%c %d %d %d\n", &t, &u, &v, &w);

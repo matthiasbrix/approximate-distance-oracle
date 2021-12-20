@@ -23,7 +23,7 @@ make all
 Executing the algorithms can be done in two ways. One is executing the executable with the required arguments. e.g 
 
 ```
-./bin/main tz tests/densegraph.txt results.csv 10 23 431 1
+./bin/main tz test-files/densegraph.txt results.csv 10 23 431 1
 ```
 
 where `tz` indicates the Thorup-Zwick is to be run, `test-files/densegraph.txt` is a valid input graph in the DIMACS ssp file format. Note that the DIMACS ssp file format is a strict requirement to run the algorithm. The file `results.csv` is just the .csv we wish to write the results to (doesn't need to exist). The next argument represents the `k` value for the algorithm. The shortest path query is being done one (23, 431), running the Thorup-Zwick query algorithm once (indicated by 1). <br /> <br />

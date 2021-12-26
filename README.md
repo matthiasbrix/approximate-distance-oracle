@@ -48,6 +48,10 @@ runs Thorup-Zwick preprocessing 3 times, query 10 times, and each of the four SS
 
 Previously run benchmarks can be inspected in the folder `benchmarks`.
 
+## License
+
+MIT License
+
 ## Contributors
 
 Matthias Brix
